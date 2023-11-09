@@ -7,109 +7,147 @@ from sqlalchemy import (
     ForeignKey,
     Float,
     Time,
+    CheckConstraint,
 )
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, backref, declarative_base
 
-engine = create_engine("sqlite:///:memory:")
+engine = create_engine("sqlite:///health_database.db")
 Base = declarative_base()
 
 
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    age = Column(Integer)
-    gender = Column(String)
-    weight = Column(Float)
-    height = Column(Float)
-    email = Column(String, unique=True)
-    password = Column(String)  # this will be hashed
+    name = Column(String(100), nullable=False)
+    # TODO: is it atomic to have the health stuff in the log in info?
+    # there can be repeating names eg John Smith, so there is no way
+    # to get these values without the id
+    age = Column(Integer, CheckConstraint("age>=0"))
+    gender = Column(String(10))
+    weight = Column(Float, CheckConstraint("weight>=0"))
+    height = Column(Float, CheckConstraint("height>=0"))
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)  # this will be hashed
 
-    # understand this code better
-    # This property can be used to access the parent model
-    # from the child model, creating a bidirectional relationship.
-    health_metrics = relationship("HealthMetric", backref="user")
-    sleeps = relationship("Sleep", backref="user")
-    foods = relationship("Food", backref="user")
-
-
-class HealthMetric(Base):
-    __tablename__ = "health_metrics"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    heart_rate = Column(Integer)
-    steps_taken = Column(Integer)  # -- could also be connected to workout table
-    stand_hours = Column(Integer)
-    systolic_bp = Column(Integer)
-    dystolic_bp = Column(Integer)
-    date = Column(Date)
+    # identify 1:many relationships with user as FK
+    # NOTE: OPTIMIZATION: you can get all goals of a user by accessing user.goals
+    # and you can get the user of a goal by accessing goal.user
+    # SQLAlchemy can use a JOIN in the query to avoid an extra round trip to the database.
+    # health_metrics = relationship("HealthMetric", backref="user")
+    # sleep = relationship("Sleep", backref="user")
+    # foods = relationship("Food", backref="user")
+    # workout_log = relationship("WorkoutLog", backref="user")
+    # user_workout = relationship("UserWorkout", backref="user")
+    # nutrition_log = relationship("NutritionLog", backref="user")
+    # goals = relationship("Goal", backref="user")
 
 
-class Sleep(Base):
-    __tablename__ = "sleep"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    duration = Column(Float)
-    quality = Column(String)  # ? notes?
-    start_time = Column(Time)
-    end_time = Column(Time)
-    date = Column(Date)
+# class HealthMetric(Base):
+#     __tablename__ = "health_metrics"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     heart_rate = Column(Integer)
+#     steps_taken = Column(Integer)  # -- could also be connected to workout table
+#     stand_hours = Column(Integer)
+#     systolic_bp = Column(Integer)
+#     diastolic_bp = Column(Integer)
+#     date = Column(Date)
 
 
-class Food(Base):
-    __tablename__ = "food"
-
-    id = Column("FoodID", Integer, primary_key=True)
-    item = Column("FoodItem", String(100), nullable=False)
-    calories = Column("Calories", Integer, nullable=False)
-    # what else should I store here? food type?
-    """
-    protein = Column('Protein', DECIMAL)
-    carbohydrates = Column('Carbohydrates', DECIMAL)
-        veggie_portions = Column('Veggie Portions', Integer)
-    fats = Column('Fats', DECIMAL)
-    """
-    nutrition_logs = relationship("NutritionLog", backref="food")
+# class Sleep(Base):
+#     __tablename__ = "sleep"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     duration = Column(Float)
+#     quality = Column(Integer)  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
+#     start_time = Column(Time)
+#     end_time = Column(Time)
+#     date = Column(Date)
 
 
-class NutritionLog(Base):
-    __tablename__ = "nutrition"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    food_id = Column("FoodID", Integer, ForeignKey("food.id"))
-    date = Column(Date)
-    time = Column(Time)
+# class Food(Base):
+#     __tablename__ = "food"
+
+#     id = Column(
+#         "FoodID", Integer, primary_key=True
+#     )  # TODO: need another id for the food?
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     name = Column("FoodItem", String(100), nullable=False)
+#     # assume drop down for entry normalization
+#     calories = Column("Calories", Integer, nullable=False)
+#     category = Column(
+#         "Category", Integer, nullable=False
+#     )  # 1 = protein 2 = carb 3 = fat 4 = veggie 5 = fruit
+
+#     nutrition_logs = relationship("NutritionLog", backref="food")
 
 
-class WorkoutLog(Base):
-    __tablename__ = "workouts"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    exercise_type = Column(Integer)  # 1 = cardio, 2 = strength, 3 = flexibility
-    duration = Column(Float)
-    calories_burned = Column(Float)
-    heart_rate = Column(Integer)  # connect this to the heart rate table?
-    difficulty_level = Column(Integer)  # include in the personal log?
-    date = Column(Date)
-    notes = Column(String)
+# class NutritionLog(Base):
+#     __tablename__ = "nutrition"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     food_id = Column("FoodID", Integer, ForeignKey("food.id"))
+#     date = Column(Date)
+#     time = Column(Time)
 
 
-class WorkoutRecommendation(Base):
-    __tablename__ = "workout_recommendations"
-    id = Column(Integer, primary_key=True)
-    workout_name = Column(String)
-    description = Column(String)
-    duration = Column(Float)
-    calories_burned = Column(Float)
-    difficulty_level = Column(Integer)  # 1 = easy, 2 = medium, 3 = hard
+# class WorkoutLog(Base):
+#     __tablename__ = "workouts"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     user_workout_id = Column(Integer, ForeignKey("user-workout.id"))
+#     recommendation_id = Column(Integer, ForeignKey("recommendation.id"))
+#     calories_burned = Column(Float)
+#     heart_rate = Column(Integer)
+#     date = Column(Date)
+
+#     __table_args__ = (
+#         CheckConstraint(
+#             "(workout_id IS NULL AND recommendation_id IS NOT NULL) OR "
+#             "(workout_id IS NOT NULL AND recommendation_id IS NULL)",
+#             name="chk_workout_recommendation_exclusive",
+#         ),
+#     )
 
 
-class Goal(Base):
-    __tablename__ = "goals"
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    description = Column(String)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    status = Column(Integer)  # 0 = not started, 1 = complete, 2 = in progress
+# # TODO: still can't decide if the user workouts and workout recommendations are too similar
+# ## workout table -- store workout stats
+# class UserWorkout(Base):
+#     __tablename__ = "workout"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     exercise_type = Column(Integer)  # 1 = cardio, 2 = strength, 3 = flexibility
+#     description = Column(String)
+#     duration = Column(Float)
+#     difficulty_level = Column(Integer)  # include in the personal log?
+
+#     workout_log = relationship(
+#         "WorkoutLog", backref="user_workout"
+#     )  # TODO: is this right?
+
+
+# class WorkoutRecommendation(Base):
+#     __tablename__ = "workout_recommendations"
+#     id = Column(Integer, primary_key=True)
+#     exercise_type = Column(Integer)  # 1 = cardio, 2 = strength, 3 = flexibility
+#     workout_name = Column(String)  # TODO: check if I need to delete this
+#     description = Column(String)
+#     duration = Column(Float)
+#     difficulty_level = Column(Integer)  # 1 = easy, 2 = medium, 3 = hard
+
+
+# class Goal(Base):
+#     __tablename__ = "goals"
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     description = Column(String)
+#     start_date = Column(Date)
+#     end_date = Column(Date)
+#     # can get goal status based on start and end date
+#     goal_type = Column(
+#         Integer
+#     )  # 1 = sleep, 2 = nutrition, 3 = workout ---> indicates which table to look into
+#     # query by start and end date, and user id
+
+
+Base.metadata.create_all(engine)
