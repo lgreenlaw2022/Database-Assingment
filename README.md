@@ -73,4 +73,5 @@ few transactions for table
 
 
 ### optimization
+
  optimize FKs by adding indexes to them to prevent costly join operations

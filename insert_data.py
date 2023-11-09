@@ -1,12 +1,12 @@
 from db_session import session
 from faker import Faker
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from init_db import (
     engine,
     User,
-    # HealthMetric,
+    HealthMetric,
     # Sleep,
     # Food,
     # NutritionLog,
@@ -37,19 +37,36 @@ for _ in range(100):
 # Commit the users to the database
 session.commit()
 
-# # Create dummy data for other tables
-# for user in session.query(User).all():
-#     for _ in range(10):  # Each user has 10 health metrics
-#         health_metric = HealthMetric(
-#             user_id=user.id,
-#             heart_rate=random.randint(40, 250),
-#             steps_taken=random.randint(0, 20000),
-#             stand_hours=random.randint(0, 24),
-#             systolic_bp=random.randint(90, 140),
-#             diastolic_bp=random.randint(50, 100),
-#             date=fake.date_between(start_date="-1y", end_date="today"),
-#         )
-#         session.add(health_metric)
+# Create dummy data for other tables
+for user in session.query(User).all():
+    start_date = datetime.now() - timedelta(days=90)  # 90 days ago
+    end_date = datetime.now()  # today
+
+    delta = timedelta(days=1)  # increment by one day
+    current_date = start_date
+    while current_date <= end_date:
+        random_time = (
+            datetime.now()
+            .replace(
+                hour=random.randint(0, 23),
+                minute=random.randint(0, 59),
+                second=random.randint(0, 59),
+            )
+            .time()
+        )
+        timestamp = datetime.combine(current_date.date(), random_time)
+        health_metric = HealthMetric(
+            user_id=user.id,
+            # this heart rate is resting heart rate only because the workout logs provide the working out heart rate
+            heart_rate=random.randint(40, 130),
+            steps_taken=random.randint(0, 20000),
+            stand_hours=random.randint(0, 20),
+            systolic_bp=random.randint(90, 130),
+            diastolic_bp=random.randint(20, 90),
+            timestamp=timestamp,
+        )
+        session.add(health_metric)
+        current_date += delta
 
 #     # TODO: comments
 #     # add sleep data
@@ -171,5 +188,5 @@ session.commit()
 #         )
 #         session.add(goal)
 
-# # Commit the dummy data to the database
-# session.commit()
+# Commit the dummy data to the database
+session.commit()

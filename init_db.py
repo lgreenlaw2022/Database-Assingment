@@ -8,6 +8,7 @@ from sqlalchemy import (
     Float,
     Time,
     CheckConstraint,
+    DateTime,
 )
 from sqlalchemy.orm import relationship, backref, declarative_base
 
@@ -19,10 +20,10 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    # TODO: is it atomic to have the health stuff in the log in info?
     # there can be repeating names eg John Smith, so there is no way
     # to get these values without the id
     age = Column(Integer, CheckConstraint("age>=0"))
+    # TODO: can't decide if this should be preset with numbers
     gender = Column(String(10))
     weight = Column(Float, CheckConstraint("weight>=0"))
     height = Column(Float, CheckConstraint("height>=0"))
@@ -33,7 +34,7 @@ class User(Base):
     # NOTE: OPTIMIZATION: you can get all goals of a user by accessing user.goals
     # and you can get the user of a goal by accessing goal.user
     # SQLAlchemy can use a JOIN in the query to avoid an extra round trip to the database.
-    # health_metrics = relationship("HealthMetric", backref="user")
+    health_metrics = relationship("HealthMetric", backref="user")
     # sleep = relationship("Sleep", backref="user")
     # foods = relationship("Food", backref="user")
     # workout_log = relationship("WorkoutLog", backref="user")
@@ -42,16 +43,16 @@ class User(Base):
     # goals = relationship("Goal", backref="user")
 
 
-# class HealthMetric(Base):
-#     __tablename__ = "health_metrics"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     heart_rate = Column(Integer)
-#     steps_taken = Column(Integer)  # -- could also be connected to workout table
-#     stand_hours = Column(Integer)
-#     systolic_bp = Column(Integer)
-#     diastolic_bp = Column(Integer)
-#     date = Column(Date)
+class HealthMetric(Base):
+    __tablename__ = "health_metrics"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    heart_rate = Column(Integer, CheckConstraint("heart_rate>=0"))
+    steps_taken = Column(Integer, CheckConstraint("steps_taken>=0"))
+    stand_hours = Column(Integer, CheckConstraint("stand_hours>=0"))
+    systolic_bp = Column(Integer, CheckConstraint("systolic_bp>=0"))
+    diastolic_bp = Column(Integer, CheckConstraint("diastolic_bp>=0"))
+    timestamp = Column(DateTime, nullable=False)
 
 
 # class Sleep(Base):
@@ -125,7 +126,7 @@ class User(Base):
 #         "WorkoutLog", backref="user_workout"
 #     )  # TODO: is this right?
 
-
+# TODO: this is many to many relationship where multiple users can do th recommended workout, look into a relational table hmmm is it already though?
 # class WorkoutRecommendation(Base):
 #     __tablename__ = "workout_recommendations"
 #     id = Column(Integer, primary_key=True)
