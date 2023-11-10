@@ -76,6 +76,8 @@ I did not make the food name a PK in the food table because it is possible for t
 
 Users can add their own workouts or do one of the workouts from the recommendations table. User's can query for a workout according to the length, exercise type, and difficulty. They could also do the same workout again by searching the name. This allows user to quickly find a workout to their needs and add it to their workout log. The workout log either connects to one of the user workouts or one of the recommended workouts. 
 
+There is also user workout table. The workout log connects the user workout to the user id. The user workout and workout recommendation tables are separate because each user may have very specific workouts with specialized descriptions that should not be included as recommendations. Further because there is a many to many relationship between the user and both workout tables, I do not want to keep the user id connected to a combined workouts table (recommendations + user's workouts). It is easier to query from the workout log based on user than having to check if an entry in a combined workout log is a user workout or a recommendation. Thus, while the tables are very similar, I have defined them separately to provide clarity in the code and make the queries simpler. 
+
 why did I not pick name as the PK?
 
 - workout tables — how to do these logs

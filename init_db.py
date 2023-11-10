@@ -123,30 +123,38 @@ class FoodLog(Base):
 #     )
 
 
-# # TODO: still can't decide if the user workouts and workout recommendations are too similar
-# ## workout table -- store workout stats
-# class UserWorkout(Base):
-#     __tablename__ = "workout"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     exercise_type = Column(Integer)  # 1 = cardio, 2 = strength, 3 = flexibility
-#     description = Column(String)
-#     duration = Column(Float)
-#     difficulty_level = Column(Integer)  # include in the personal log?
+# workout table -- store workout stats
+class UserWorkout(Base):
+    __tablename__ = "user_workout"
+    # TODO: make sure that the user workouts will be added to the log table immediately
+    id = Column(Integer, primary_key=True)
+    exercise_type = Column(
+        Integer,
+        CheckConstraint("exercise_type IN (1, 2, 3)"),
+        nullable=False,
+    )  # 1 = cardio, 2 = strength, 3 = flexibility
+    description = Column(String, nullable=False)
+    duration = Column(
+        Float, CheckConstraint("duration BETWEEN 0 AND 3"), nullable=False
+    )
+    difficulty_level = Column(
+        Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
+    )  # include in the personal log?
 
-#     workout_log = relationship(
-#         "WorkoutLog", backref="user_workout"
-#     )  # TODO: is this right?
+    # workout_log = relationship(
+    #     "WorkoutLog", backref="user_workout"
+    # )
 
 
 class WorkoutRecommendation(Base):
     __tablename__ = "workout_recommendations"
+
     id = Column(Integer, primary_key=True)
     # could have the same name for multiple difficulty levels or durations so this cannot be the PK
     workout_name = Column(
         String(100), nullable=False
     )  # TODO: check if I need to delete this
-    description = Column(String, nullable=False)
+    description = Column(String)
     exercise_type = Column(
         Integer,
         CheckConstraint("exercise_type IN (1, 2, 3)"),

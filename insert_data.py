@@ -12,7 +12,7 @@ from init_db import (
     Sleep,
     Food,
     FoodLog,
-    # UserWorkout,
+    UserWorkout,
     # WorkoutLog,
     WorkoutRecommendation,
     # Goal,
@@ -164,21 +164,21 @@ for user in session.query(User).all():
             )
             session.add(food_log)
 
-#     # Create dummy data for the UserWorkout and WorkoutLog tables
-#     for _ in range(365):  # Each user has 365 workouts (one for each day of the year)
-#         user_workout = UserWorkout(
-#             user_id=user.id,
-#             exercise_type=random.choice(exercise_types),
-#             description=fake.sentence(),
-#             duration=random.uniform(0.15, 2.0),  # Duration between 0.15 and 2 hours
-#             difficulty_level=random.choice(difficulty_levels),
-#         )
-#         session.add(user_workout)
+    # Create dummy data for the UserWorkout and WorkoutLog tables
+    # TODO: maybe I should change the insertions to just have the same description, rather than the fake sentence
+    for _ in range(30):  # Each user has 30 workouts
+        user_workout = UserWorkout(
+            exercise_type=random.choice(exercise_types),
+            description=fake.sentence(),
+            duration=random.uniform(0.05, 2.0),  # hours
+            difficulty_level=random.choice(difficulty_levels),
+        )
+        session.add(user_workout)
 
-#     user_workouts = (
-#         session.query(UserWorkout).filter(UserWorkout.user_id == user.id).all()
-#     )
-#     workout_recommendations = session.query(WorkoutRecommendation).all()
+    # user_workouts = (
+    #     session.query(UserWorkout).filter(UserWorkout.user_id == user.id).all()
+    # )
+    workout_recommendations = session.query(WorkoutRecommendation).all()
 
 #     for _ in range(
 #         365
