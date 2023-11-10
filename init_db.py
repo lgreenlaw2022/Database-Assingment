@@ -38,10 +38,10 @@ class User(Base):
     # SQLAlchemy can use a JOIN in the query to avoid an extra round trip to the database.
     health_metrics = relationship("HealthMetric", backref="user")
     sleep = relationship("Sleep", backref="user")
-    # foods = relationship("Food", backref="user")
+    # foods = relationship("Food", backref="user") TODO: update if I don't need
+    food_log = relationship("FoodLog", backref="user")
     # workout_log = relationship("WorkoutLog", backref="user")
     # user_workout = relationship("UserWorkout", backref="user")
-    # nutrition_log = relationship("NutritionLog", backref="user")
     # goals = relationship("Goal", backref="user")
 
 
@@ -58,7 +58,7 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
 
-class Sleep(Base):
+class Sleep(Base):  # TODO: change this to sleep log?
     __tablename__ = "sleep"
     id = Column(Integer, primary_key=True)
     # TODO: do I need this index if I can do the backref relationship?
@@ -74,30 +74,32 @@ class Sleep(Base):
     date = Column(Date, nullable=False)
 
 
-# class Food(Base):
-#     __tablename__ = "food"
+class Food(Base):
+    __tablename__ = "food"
 
-#     id = Column(
-#         "FoodID", Integer, primary_key=True
-#     )  # TODO: need another id for the food?
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     name = Column("FoodItem", String(100), nullable=False)
-#     # assume drop down for entry normalization
-#     calories = Column("Calories", Integer, nullable=False)
-#     category = Column(
-#         "Category", Integer, nullable=False
-#     )  # 1 = protein 2 = carb 3 = fat 4 = veggie 5 = fruit
+    id = Column(Integer, primary_key=True)  # TODO: need another id for the food?
+    name = Column(String(100), nullable=False, unique=True)
+    # assume drop down for entry normalization
+    calories = Column(Integer, CheckConstraint("calories>=0"), nullable=False)
+    category = Column(
+        Integer, nullable=False
+    )  # 1 = protein, 2 = carb, 3 = fat, 4 = veggie, 5 = fruit
 
-#     nutrition_logs = relationship("NutritionLog", backref="food")
+    food_logs = relationship("FoodLog", backref="food")
 
 
-# class NutritionLog(Base):
-#     __tablename__ = "nutrition"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     food_id = Column("FoodID", Integer, ForeignKey("food.id"))
-#     date = Column(Date)
-#     time = Column(Time)
+class FoodLog(Base):
+    __tablename__ = "food log"
+    # need the key here because otherwise the whole table would be a composite key
+    # a user may eat the same food multiple times a day etc
+    id = Column(Integer, primary_key=True)
+    # not sure if I need this index if I have the back  ref
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    food_id = Column(Integer, ForeignKey("food.id"), index=True, nullable=False)
+    # want to keep these separate because a user might want a daily report with times
+    # or a long term report with dates
+    date = Column(Date, nullable=False)
+    time = Column(Time)
 
 
 # class WorkoutLog(Base):

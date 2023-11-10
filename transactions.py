@@ -1,4 +1,4 @@
-from init_db import User, HealthMetric, Sleep
+from init_db import User, HealthMetric, Sleep, Food, FoodLog
 from sqlalchemy import func
 from db_session import session
 from faker import Faker
@@ -100,3 +100,71 @@ if last_sleep:
     print(
         f"Date: {last_sleep.date} \nDuration: {last_sleep.duration}, Quality: {last_sleep.quality}, Start Time: {last_sleep.start_time}, End Time: {last_sleep.end_time}"
     )
+
+
+### delete record
+# delete user
+# update user info
+
+# FOOD TABLES Transactions
+# Add a food to the Food table
+food = Food(name="Test Food", calories=95, category=1)
+session.add(food)
+session.commit()  # Commit the transaction to get the id of the new Food object
+
+# Check if the food is already in user 1's log
+existing_food_log = (
+    session.query(FoodLog)
+    .join(Food)
+    .filter(FoodLog.user_id == 1, Food.id == food.id)
+    .first()
+)
+if existing_food_log is None:
+    # If the food is not in the log, add it
+    food_log = FoodLog(
+        user_id=1,
+        food_id=food.id,
+        date=datetime.now().date(),
+        time=datetime.now().time(),
+    )
+    session.add(food_log)
+    session.commit()
+else:
+    print("This food is already in the user's log.")
+
+
+# Specify the user_id and food_id
+user_id = 1  # Replace with the actual user_id
+food_id = (
+    food.id
+)  # Replace with the actual food_id, use the one I just added? otherwise need to select one
+
+# Find the food log entry
+food_log = (
+    session.query(FoodLog)
+    .filter(FoodLog.user_id == user_id, FoodLog.food_id == food_id)
+    .first()
+)
+
+if food_log is not None:
+    # If the food log entry exists, delete it
+    session.delete(food_log)
+    session.commit()
+    print("The food log entry has been deleted.")
+else:
+    print("No matching food log entry was found.")
+
+# Specify the food_id and new_calories
+food_id = 1  # Replace with the actual food_id
+new_calories = 100  # Replace with the new calories
+
+# Find the food
+food = session.query(Food).filter(Food.id == food_id).first()
+
+if food is not None:
+    # If the food exists, update its calories
+    food.calories = new_calories
+    session.commit()
+    print("The calories of the food have been updated.")
+else:
+    print("No matching food was found.")

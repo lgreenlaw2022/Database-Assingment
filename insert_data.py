@@ -2,14 +2,16 @@ from db_session import session
 from faker import Faker
 import random
 from datetime import datetime, timedelta, time
+from faker_food import FoodProvider
+
 
 from init_db import (
     engine,
     User,
     HealthMetric,
     Sleep,
-    # Food,
-    # NutritionLog,
+    Food,
+    FoodLog,
     # UserWorkout,
     # WorkoutLog,
     # WorkoutRecommendation,
@@ -18,6 +20,7 @@ from init_db import (
 
 # Create a Faker instance
 fake = Faker()
+fake.add_provider(FoodProvider)
 
 # Create 100 users
 for _ in range(50):
@@ -34,8 +37,44 @@ for _ in range(50):
     )
     session.add(user)
 
-# Commit the users to the database
-session.commit()
+# add foods because they are user independent
+# make sure all of the generated entries are unique
+vegetables = set()
+while len(vegetables) < 12:
+    vegetables.add(fake.vegetable())
+fruits = set()
+while len(fruits) < 12:
+    fruits.add(fake.fruit())
+dishes = set()
+while len(dishes) < 36:
+    dishes.add(fake.dish())
+
+# Now you can use the `vegetables` and `dishes` sets in your code
+for _ in range(60):  # add 60 foods to the database
+    category = random.randint(1, 5)
+    if category == 5:  # 1/5 of the time, category is fruit
+        if not fruits:  # If the set is empty, skip to the next iteration
+            continue
+        name = fruits.pop()  # Use a unique fruit
+    elif category == 4:  # 1/5 of the time, category is vegetable
+        if not vegetables:  # If the set is empty, skip to the next iteration
+            continue
+        name = vegetables.pop()  # Use a unique vegetable
+    else:
+        if not dishes:  # If the set is empty, skip to the next iteration
+            continue
+        name = dishes.pop()  # Use a unique dish
+
+    food = Food(
+        name=name,
+        calories=random.randint(50, 700),  # Calories between 50 and 500
+        category=category,
+    )
+    session.add(food)
+
+
+# Commit the users, food, workout recommendations to the database
+# session.commit()
 
 # Create dummy data for other tables
 for user in session.query(User).all():
@@ -95,30 +134,21 @@ for user in session.query(User).all():
         )
         session.add(sleep)
 
-#     # Create dummy data for the Food and NutritionLog tables
-#     # TODO: make a number?
-#     food_categories = ["Protein", "Carb", "Fat", "Veggie", "Fruit"]
+    # TODO: make a number?
 
-#     for _ in range(100):  # Each user has 100 different foods
-#         food = Food(
-#             user_id=user.id,
-#             name=fake.word(),  # TODO: this needs to be better
-#             calories=random.randint(50, 700),  # Calories between 50 and 500
-#             category=random.choice(food_categories),
-#         )
-#         session.add(food)
-
-#     for _ in range(
-#         365  # TODO: this doesn't actually guarantee that there's an entry for each day I think
-#     ):  # Each user has 365 nutrition logs (one for each day of the year)
-#         food = random.choice(session.query(Food).filter(Food.user_id == user.id).all())
-#         nutrition_log = NutritionLog(
-#             user_id=user.id,
-#             food_id=food.id,
-#             date=fake.date_between(start_date="-1y", end_date="today"),
-#             time=fake.time_object(),
-#         )
-#         session.add(nutrition_log)
+    # Create dummy data for FoodLog table
+    for day in range(30):  # For each day in a 30-day window
+        # for user in session.query(User).all():
+        for _ in range(3):  # Add 3 entries each day
+            food = random.choice(session.query(Food).all())
+            food_log_date = start_date + timedelta(days=day)
+            food_log = FoodLog(
+                user_id=user.id,
+                food_id=food.id,
+                date=food_log_date,
+                time=fake.time_object(),
+            )
+            session.add(food_log)
 
 #     # Create dummy data for the WorkoutRecommendation table
 #     exercise_types = [1, 2, 3]  # 1 = cardio, 2 = strength, 3 = flexibility

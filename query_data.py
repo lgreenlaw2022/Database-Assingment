@@ -1,5 +1,5 @@
-from init_db import User, HealthMetric, Sleep
-from sqlalchemy import func
+from init_db import User, HealthMetric, Sleep, Food, FoodLog
+from sqlalchemy import func, text
 from db_session import session
 from faker import Faker
 import random
@@ -200,3 +200,97 @@ print(
 #     print(
 #         f"Date: {last_sleep.date} \nDuration: {last_sleep.duration}, Quality: {last_sleep.quality}, Start Time: {last_sleep.start_time}, End Time: {last_sleep.end_time}"
 #     )
+
+
+# FOOD AND FOOD LOG QUERIES
+# 3 most popular foods for all users
+# Query the FoodLog table
+query = (
+    session.query(Food.name, func.count(FoodLog.food_id).label("total"))
+    .join(FoodLog, Food.id == FoodLog.food_id)
+    .group_by(Food.name)
+    .order_by(text("total DESC"))
+    .limit(3)
+)
+
+# Execute the query and fetch all results
+most_popular_foods = query.all()
+
+# Print the results
+for food in most_popular_foods:
+    print("\n3 most popular foods across all users")
+    print(f"Food ID: {food.name}, Count: {food.total}")
+
+# entries for user 1 in the last day
+# Get the date 1 day ago
+end_date = datetime.now().date()
+start_date = end_date - timedelta(days=1)
+
+# Specify the user_id
+user_id = 1  # Replace with the actual user_id
+
+# Query the FoodLog table and use the backref to Food
+query = (
+    session.query(FoodLog)
+    .join(Food)
+    .filter(
+        FoodLog.user_id == user_id, FoodLog.date.between(start_date, end_date)
+    )  # TODO: th user id shoudl be indexed
+)
+
+# Execute the query and fetch all results
+foods_user_ate_yesterday = query.all()
+
+# Print the results
+print("\nFoods user 1 ate yesterday:")
+for food_log in foods_user_ate_yesterday:
+    print(f"Food Name: {food_log.food.name}, Time: {food_log.time}")
+
+
+# Get the date 1 week ago
+# TODO: also make start_date_7
+start_date = end_date - timedelta(days=7)
+
+# Specify the user_id
+user_id = 1
+
+# Query the FoodLog table and use the backref to Food
+query = (
+    session.query(FoodLog)
+    .join(Food)
+    .filter(
+        FoodLog.user_id == user_id,
+        FoodLog.date.between(start_date, end_date),
+        Food.category == 4,  # Filter by the vegetable food category
+    )
+)
+
+# Execute the query and fetch all results
+num_vegetables_last_week = (
+    query.count()
+)  # Use count() to get the number of times user 1 ate vegetables
+
+# Print the results
+print(
+    f"\nNumber of times user 1 ate vegetables in the last week: {num_vegetables_last_week}"
+)
+
+# Specify the user_id and date
+user_id = 1
+date = datetime(2023, 11, 9)
+
+# Query the FoodLog table and use the backref to Food
+query = (
+    session.query(func.sum(Food.calories).label("total_calories"))
+    .join(FoodLog)
+    .filter(
+        FoodLog.user_id == user_id,
+        FoodLog.date == date.date(),
+    )
+)
+
+# Execute the query and fetch the result
+total_calories = query.scalar()  # Use scalar() to get the sum of calories
+
+# Print the result
+print(f"\nTotal calories consumed by user {user_id} on {date.date()}: {total_calories}")

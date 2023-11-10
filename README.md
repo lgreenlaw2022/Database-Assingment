@@ -67,6 +67,10 @@ Users can have multiple overview health metrics reported by their smart devices 
 ### Sleep
 Users have 1 sleep record every night (assuming their data is updated reliably). The quality, length, and exact start and end times are measured. This table requires the foreign key connection to the user id. This table is technically not up to 3rd form because duration is a transitive dependency of start time and end time. However, I argue that on insertion, the processor can calculate the duration from those times. I chose to include this field in the table because I think it is a critical value of interest to many users. Many people are going to be most interest in tracking how many hours of sleep they have been getting and the quality, rather than checking the exact start and end times. If I did not store duration, for every day in the query, the duration would have to be calculated. This is more expensive than calculating the value before storing it. Additionally, many sleep monitors will upload these data independently. 
 
+### Food
+assume that there is a pre populated list
+
+why did I not pick name as the PK?
 
 - workout tables — how to do these logs
     - stream line with recommendations? or is this unnecessary?
@@ -88,3 +92,8 @@ few transactions for table
  primary key values should not be updated
 
  talk about acid for committing data?
+ 
+ constraints do have a cost
+
+
+ ### file structure
