@@ -68,7 +68,9 @@ class Sleep(Base):  # TODO: change this to sleep log?
     # TODO: need to validate this somehow?
     duration = Column(Float, CheckConstraint("duration>=0"), nullable=False)
     # TODO: still decide about numbering
-    quality = Column(Integer)  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
+    quality = Column(
+        Integer, CheckConstraint("quality BETWEEN 1 AND 5")
+    )  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     date = Column(Date, nullable=False)
@@ -82,14 +84,14 @@ class Food(Base):
     # assume drop down for entry normalization
     calories = Column(Integer, CheckConstraint("calories>=0"), nullable=False)
     category = Column(
-        Integer, nullable=False
+        Integer, CheckConstraint("category BETWEEN 1 AND 5"), nullable=False
     )  # 1 = protein, 2 = carb, 3 = fat, 4 = veggie, 5 = fruit
 
     food_logs = relationship("FoodLog", backref="food")
 
 
 class FoodLog(Base):
-    __tablename__ = "food log"
+    __tablename__ = "food_log"
     # need the key here because otherwise the whole table would be a composite key
     # a user may eat the same food multiple times a day etc
     id = Column(Integer, primary_key=True)
@@ -136,15 +138,28 @@ class FoodLog(Base):
 #         "WorkoutLog", backref="user_workout"
 #     )  # TODO: is this right?
 
-# TODO: this is many to many relationship where multiple users can do th recommended workout, look into a relational table hmmm is it already though?
-# class WorkoutRecommendation(Base):
-#     __tablename__ = "workout_recommendations"
-#     id = Column(Integer, primary_key=True)
-#     exercise_type = Column(Integer)  # 1 = cardio, 2 = strength, 3 = flexibility
-#     workout_name = Column(String)  # TODO: check if I need to delete this
-#     description = Column(String)
-#     duration = Column(Float)
-#     difficulty_level = Column(Integer)  # 1 = easy, 2 = medium, 3 = hard
+
+class WorkoutRecommendation(Base):
+    __tablename__ = "workout_recommendations"
+    id = Column(Integer, primary_key=True)
+    # could have the same name for multiple difficulty levels or durations so this cannot be the PK
+    workout_name = Column(
+        String(100), nullable=False
+    )  # TODO: check if I need to delete this
+    description = Column(String, nullable=False)
+    exercise_type = Column(
+        Integer,
+        CheckConstraint("exercise_type IN (1, 2, 3)"),
+        nullable=False,
+    )  # 1 = cardio, 2 = strength, 3 = flexibility
+    duration = Column(
+        Float, CheckConstraint("duration BETWEEN 0 AND 3"), nullable=False
+    )
+    difficulty_level = Column(
+        Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
+    )  # 1 = easy, 2 = medium, 3 = hard
+
+    # workout_log = relationship("WorkoutLog", backref="workout_recommendation")
 
 
 # class Goal(Base):

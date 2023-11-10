@@ -1,7 +1,7 @@
 from db_session import session
-from faker import Faker
 import random
 from datetime import datetime, timedelta, time
+from faker import Faker
 from faker_food import FoodProvider
 
 
@@ -14,7 +14,7 @@ from init_db import (
     FoodLog,
     # UserWorkout,
     # WorkoutLog,
-    # WorkoutRecommendation,
+    WorkoutRecommendation,
     # Goal,
 )
 
@@ -72,6 +72,20 @@ for _ in range(60):  # add 60 foods to the database
     )
     session.add(food)
 
+# Create dummy data for the WorkoutRecommendation table
+# TODO: make consistent through the whole file?
+exercise_types = [1, 2, 3]  # 1 = cardio, 2 = strength, 3 = flexibility
+difficulty_levels = [1, 2, 3]  # 1 = easy, 2 = medium, 3 = hard
+
+for _ in range(50):  # Create 50 workout recommendations
+    workout_recommendation = WorkoutRecommendation(
+        exercise_type=random.choice(exercise_types),
+        workout_name=(f"Workout {_}"),
+        description=fake.sentence(),
+        duration=random.uniform(0.05, 2.0),  # hours
+        difficulty_level=random.choice(difficulty_levels),
+    )
+    session.add(workout_recommendation)
 
 # Commit the users, food, workout recommendations to the database
 # session.commit()
@@ -150,21 +164,6 @@ for user in session.query(User).all():
             )
             session.add(food_log)
 
-#     # Create dummy data for the WorkoutRecommendation table
-#     exercise_types = [1, 2, 3]  # 1 = cardio, 2 = strength, 3 = flexibility
-#     difficulty_levels = [1, 2, 3]  # 1 = easy, 2 = medium, 3 = hard
-#     workout_names = ["Workout A", "Workout B", "Workout C", "Workout D", "Workout E"]
-
-#     for _ in range(100):  # Create 100 workout recommendations
-#         workout_recommendation = WorkoutRecommendation(
-#             exercise_type=random.choice(exercise_types),
-#             workout_name=random.choice(workout_names),
-#             description=fake.sentence(),
-#             duration=random.uniform(0.5, 2.0),  # Duration between 0.5 and 2 hours
-#             difficulty_level=random.choice(difficulty_levels),
-#         )
-#         session.add(workout_recommendation)
-
 #     # Create dummy data for the UserWorkout and WorkoutLog tables
 #     for _ in range(365):  # Each user has 365 workouts (one for each day of the year)
 #         user_workout = UserWorkout(
@@ -227,4 +226,5 @@ for user in session.query(User).all():
 #         session.add(goal)
 
 # Commit the dummy data to the database
+# TODO: explain why I am only committing once at the end
 session.commit()

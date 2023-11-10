@@ -67,8 +67,14 @@ Users can have multiple overview health metrics reported by their smart devices 
 ### Sleep
 Users have 1 sleep record every night (assuming their data is updated reliably). The quality, length, and exact start and end times are measured. This table requires the foreign key connection to the user id. This table is technically not up to 3rd form because duration is a transitive dependency of start time and end time. However, I argue that on insertion, the processor can calculate the duration from those times. I chose to include this field in the table because I think it is a critical value of interest to many users. Many people are going to be most interest in tracking how many hours of sleep they have been getting and the quality, rather than checking the exact start and end times. If I did not store duration, for every day in the query, the duration would have to be calculated. This is more expensive than calculating the value before storing it. Additionally, many sleep monitors will upload these data independently. 
 
-### Food
-assume that there is a pre populated list
+### Food Tracking
+This system uses a food database. The assumption is there is a prepopulated list for users to select the food from. Users can also add items to this table of foods if necessary, tracking their name, category (food, vegetable etc) and number of calories. The goal is to help users track their food consumption and nutrition in a log. The foods can be selected from a drop down showing the food name (ensuring data normalization). On submit, the food is automatically updated to the log table which connects the user id with the food id and the date of the entry. The log table allows us to sort by user or food (both foreign keys). We can also isolate specific characteristics of the foods users have eaten via the `food_id` FK. For example, get the number of calories they have eaten today or how many servings of vegetables they eat on average every day in the past week. 
+
+I did not make the food name a PK in the food table because it is possible for the name to be edited (eg. a typo on entry or maybe an existing food is rebranded with a new name). I do have the unique constraint to make sure only one entry of a specific food in the food table. Strings are also more expensive to process as a FK. Thus, I decided to add the surrogate, integer id column as the PK. 
+
+### Workout Tracking
+
+Users can add their own workouts or do one of the workouts from the recommendations table. User's can query for a workout according to the length, exercise type, and difficulty. They could also do the same workout again by searching the name. This allows user to quickly find a workout to their needs and add it to their workout log. The workout log either connects to one of the user workouts or one of the recommended workouts. 
 
 why did I not pick name as the PK?
 
