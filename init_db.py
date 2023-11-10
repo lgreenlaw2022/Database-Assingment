@@ -27,6 +27,8 @@ class User(Base):
     gender = Column(String(10))
     weight = Column(Float, CheckConstraint("weight>=0"))
     height = Column(Float, CheckConstraint("height>=0"))
+    # NOTE: this is the only value that is maybeee immutable but I don't think it is
+    # an intuitive PK value, and def not a composite key value
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)  # this will be hashed
 
@@ -35,7 +37,7 @@ class User(Base):
     # and you can get the user of a goal by accessing goal.user
     # SQLAlchemy can use a JOIN in the query to avoid an extra round trip to the database.
     health_metrics = relationship("HealthMetric", backref="user")
-    # sleep = relationship("Sleep", backref="user")
+    sleep = relationship("Sleep", backref="user")
     # foods = relationship("Food", backref="user")
     # workout_log = relationship("WorkoutLog", backref="user")
     # user_workout = relationship("UserWorkout", backref="user")
@@ -46,6 +48,7 @@ class User(Base):
 class HealthMetric(Base):
     __tablename__ = "health_metrics"
     id = Column(Integer, primary_key=True)
+    # TODO: maybe I should make it so all of these are required, assuming a smart device
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     heart_rate = Column(Integer, CheckConstraint("heart_rate>=0"))
     steps_taken = Column(Integer, CheckConstraint("steps_taken>=0"))
@@ -55,15 +58,20 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
 
-# class Sleep(Base):
-#     __tablename__ = "sleep"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     duration = Column(Float)
-#     quality = Column(Integer)  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
-#     start_time = Column(Time)
-#     end_time = Column(Time)
-#     date = Column(Date)
+class Sleep(Base):
+    __tablename__ = "sleep"
+    id = Column(Integer, primary_key=True)
+    # TODO: do I need this index if I can do the backref relationship?
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    # TODO: can I make a case for using this? because I think it is a highly requested data
+    # TODO: change insertions to correctly calculate insertions
+    # TODO: need to validate this somehow?
+    duration = Column(Float, CheckConstraint("duration>=0"), nullable=False)
+    # TODO: still decide about numbering
+    quality = Column(Integer)  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    date = Column(Date, nullable=False)
 
 
 # class Food(Base):

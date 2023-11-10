@@ -7,7 +7,7 @@ from init_db import (
     engine,
     User,
     HealthMetric,
-    # Sleep,
+    Sleep,
     # Food,
     # NutritionLog,
     # UserWorkout,
@@ -20,7 +20,7 @@ from init_db import (
 fake = Faker()
 
 # Create 100 users
-for _ in range(100):
+for _ in range(50):
     name = fake.name()
     age = random.randint(18, 60)
     user = User(
@@ -39,7 +39,7 @@ session.commit()
 
 # Create dummy data for other tables
 for user in session.query(User).all():
-    start_date = datetime.now() - timedelta(days=90)  # 90 days ago
+    start_date = datetime.now() - timedelta(days=30)  # 30 days ago
     end_date = datetime.now()  # today
 
     delta = timedelta(days=1)  # increment by one day
@@ -68,24 +68,32 @@ for user in session.query(User).all():
         session.add(health_metric)
         current_date += delta
 
-#     # TODO: comments
-#     # add sleep data
-#     for _ in range(
-#         365
-#     ):  # Each user has 365 sleep records (one for each day of the year)
-#         start_time = datetime.now() - timedelta(days=365 - _)
-#         end_time = start_time + timedelta(
-#             hours=random.randint(3, 13)
-#         )  # Sleep duration possibilities
-#         sleep = Sleep(
-#             user_id=user.id,
-#             duration=(end_time - start_time).seconds / 3600.0,  # Duration in hours
-#             quality=random.randint(1, 4),  # Quality between 1 (poor) and 4 (excellent)
-#             start_time=start_time.time(),
-#             end_time=end_time.time(),
-#             date=start_time.date(),
-#         )
-#         session.add(sleep)
+    #     # TODO: comments
+    # add sleep data
+    # TODO: make all of the data time population the same
+    # TODO: move to top for reuse
+    today = datetime.now().date()
+    start_date = today - timedelta(days=30)
+    for _ in range(30):  # Each user has 60 sleep records (one a day)
+        start_time = datetime.combine(start_date, datetime.min.time()) + timedelta(
+            days=_,
+            hours=random.randint(0, 23),
+            minutes=random.randint(0, 59),
+            seconds=random.randint(0, 59),
+        )
+        hours = round(
+            random.uniform(3, 13), 2
+        )  # Duration in hours rounded to 100ths place
+        end_time = start_time + timedelta(hours=hours)
+        sleep = Sleep(
+            user_id=user.id,
+            duration=hours,
+            quality=random.randint(1, 4),  # Quality between 1 (poor) and 4 (excellent)
+            start_time=start_time.time(),
+            end_time=end_time.time(),
+            date=start_time.date(),
+        )
+        session.add(sleep)
 
 #     # Create dummy data for the Food and NutritionLog tables
 #     # TODO: make a number?
