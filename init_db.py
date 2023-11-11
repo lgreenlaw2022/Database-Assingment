@@ -104,23 +104,26 @@ class FoodLog(Base):
     time = Column(Time)
 
 
-# class WorkoutLog(Base):
-#     __tablename__ = "workouts"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     user_workout_id = Column(Integer, ForeignKey("user-workout.id"))
-#     recommendation_id = Column(Integer, ForeignKey("recommendation.id"))
-#     calories_burned = Column(Float)
-#     heart_rate = Column(Integer)
-#     date = Column(Date)
+class WorkoutLog(Base):
+    # TODO: set foreign keys to not null if they are required
+    __tablename__ = "workouts"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    # TODO: should I index these?
+    user_workout_id = Column(Integer, ForeignKey("user-workout.id"), index=True)
+    recommendation_id = Column(Integer, ForeignKey("recommendation.id"), index=True)
+    # TODO: decide if I want this level of constraints
+    calories_burned = Column(Integer, CheckConstraint("calories_burned > 0"))
+    heart_rate = Column(Integer, CheckConstraint("heart_rate > 0"))
+    date = Column(Date, nullable=False)
 
-#     __table_args__ = (
-#         CheckConstraint(
-#             "(workout_id IS NULL AND recommendation_id IS NOT NULL) OR "
-#             "(workout_id IS NOT NULL AND recommendation_id IS NULL)",
-#             name="chk_workout_recommendation_exclusive",
-#         ),
-#     )
+    __table_args__ = (
+        CheckConstraint(
+            "(user_workout_id IS NULL AND recommendation_id IS NOT NULL) OR "
+            "(user_workout_id IS NOT NULL AND recommendation_id IS NULL)",
+            name="chk_workout_recommendation_exclusive",
+        ),
+    )
 
 
 # workout table -- store workout stats
@@ -141,9 +144,7 @@ class UserWorkout(Base):
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # include in the personal log?
 
-    # workout_log = relationship(
-    #     "WorkoutLog", backref="user_workout"
-    # )
+    workout_log = relationship("WorkoutLog", backref="user_workout")
 
 
 class WorkoutRecommendation(Base):
@@ -167,7 +168,7 @@ class WorkoutRecommendation(Base):
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
 
-    # workout_log = relationship("WorkoutLog", backref="workout_recommendation")
+    workout_log = relationship("WorkoutLog", backref="workout_recommendation")
 
 
 # class Goal(Base):

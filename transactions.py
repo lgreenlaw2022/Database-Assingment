@@ -1,4 +1,12 @@
-from init_db import User, HealthMetric, Sleep, Food, FoodLog
+from init_db import (
+    User,
+    HealthMetric,
+    Sleep,
+    Food,
+    FoodLog,
+    UserWorkout,
+    WorkoutRecommendation,
+)
 from sqlalchemy import func
 from db_session import session
 from faker import Faker
@@ -168,3 +176,55 @@ if food is not None:
     print("The calories of the food have been updated.")
 else:
     print("No matching food was found.")
+
+# add entry to recommended workouts
+workout_recommendation = WorkoutRecommendation(
+    exercise_type=1,
+    workout_name="Test Workout",
+    description="Test workout description",
+    duration=0.5,  # hours
+    difficulty_level=1,
+)
+session.add(workout_recommendation)
+session.commit()
+# Check if the new WorkoutRecommendation object was successfully added to the table
+if workout_recommendation.id is not None:
+    print("The new WorkoutRecommendation entry was successfully added to the table.")
+else:
+    print("The new WorkoutRecommendation entry was not added to the table.")
+
+# Update the name of a WorkoutRecommendation entry
+workout_to_update = workout_recommendation.id
+if workout_to_update is not None:
+    workout_to_update.name = "Updated Workout Name"
+    session.commit()
+    print("A WorkoutRecommendation entry was successfully updated.")
+else:
+    print("No WorkoutRecommendation entry was found to update.")
+
+# Delete a WorkoutRecommendation entry
+workout_to_delete = workout_recommendation.id
+if workout_to_delete is not None:
+    session.delete(workout_to_delete)
+    session.commit()
+    print("A WorkoutRecommendation entry was successfully deleted.")
+else:
+    print("No WorkoutRecommendation entry was found to delete.")
+
+# add entry to user workouts
+user_workout = UserWorkout(
+    exercise_type=1,
+    description="test user workout",
+    duration=0.5,  # hours
+    difficulty_level=1,
+)
+session.add(user_workout)
+session.commit()
+# Check if the new UserWorkout object was successfully added to the table
+if user_workout.id is not None:
+    print("The new UserWorkout entry was successfully added to the table.")
+else:
+    print("The new UserWorkout entry was not added to the table.")
+
+
+# TODO: check that only one of the workout FK exist for the workout log entries

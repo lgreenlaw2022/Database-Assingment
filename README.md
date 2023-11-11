@@ -76,19 +76,10 @@ I did not make the food name a PK in the food table because it is possible for t
 
 Users can add their own workouts or do one of the workouts from the recommendations table. User's can query for a workout according to the length, exercise type, and difficulty. They could also do the same workout again by searching the name. This allows user to quickly find a workout to their needs and add it to their workout log. The workout log either connects to one of the user workouts or one of the recommended workouts. 
 
-There is also user workout table. The workout log connects the user workout to the user id. The user workout and workout recommendation tables are separate because each user may have very specific workouts with specialized descriptions that should not be included as recommendations. Further because there is a many to many relationship between the user and both workout tables, I do not want to keep the user id connected to a combined workouts table (recommendations + user's workouts). It is easier to query from the workout log based on user than having to check if an entry in a combined workout log is a user workout or a recommendation. Thus, while the tables are very similar, I have defined them separately to provide clarity in the code and make the queries simpler. 
+There is also user workout table. The workout log connects the user workout to the user id. The user workout and workout recommendation tables are separate because each user may have very specific workouts with specialized descriptions that should not be included as recommendations. Further because there is a many to many relationship between the user and both workout tables, I do not want to keep the user id connected to a combined workouts table (recommendations + user's workouts). It is easier to query from the workout log based on user than having to check if an entry in a combined workout log is a user workout or a recommendation. Thus, while the tables are very similar, I have defined them separately to provide clarity in the code and make the queries simpler.
 
-why did I not pick name as the PK?
+The workout log then holds the user's id and either an id for a user defined workout or one of the ids for a recommended work out. There is a constraint on these columns so that only 1 can be NOT NULL at a time. This allows me to show the relationship between the user and their workout in a streamlined way. Further, this table stores the stats that are not specific to the details of the workout. These are the calories burned and the average heart rate. Since these are specific to the user and the workout, they are in the relational table. These are data points people will want. For example, someone may want to subtract the number of calories they burned that day from the number of calories they ate that day to see if they are on track to reach a goal.
 
-- workout tables — how to do these logs
-    - stream line with recommendations? or is this unnecessary?
-- how to connect activities to goal success
-- food logs — reusability
-
-
-many queries per table
-
-few transactions for table
 
 
 ### optimization
@@ -102,6 +93,11 @@ few transactions for table
  talk about acid for committing data?
  
  constraints do have a cost
+
+ why did I not pick (workout? food?) name as the PK?
+
+
+ >  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
 
 
  ### file structure

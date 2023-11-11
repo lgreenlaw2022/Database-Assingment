@@ -206,11 +206,7 @@ query = (
         FoodLog.date == date.date(),
     )
 )
-
-# Execute the query and fetch the result
 total_calories = query.scalar()  # Use scalar() to get the sum of calories
-
-# Print the result
 print(f"\nTotal calories consumed by user {user_id} on {date.date()}: {total_calories}")
 
 # WORKOUT RECOMMENDATION QUERIES
