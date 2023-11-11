@@ -1,7 +1,7 @@
 from init_db import (
     User,
     HealthMetric,
-    Sleep,
+    SleepLog,
     Food,
     FoodLog,
     WorkoutRecommendation,
@@ -14,7 +14,10 @@ from db_session import session
 from faker import Faker
 import random
 from datetime import datetime, timedelta
+import time
 
+
+query_start_time = time.time()
 # initialize Faker for transaction demonstrations
 fake = Faker()
 # TODO: switch to this global?
@@ -101,12 +104,12 @@ if user1:
     # Get average sleep duration and quality over the last 30 days
     avg_sleep = (
         session.query(
-            func.avg(Sleep.duration),
-            func.avg(Sleep.quality),
+            func.avg(SleepLog.duration),
+            func.avg(SleepLog.quality),
         )
         .filter(
-            Sleep.user == user1,
-            Sleep.date.between(start_date, end_date),
+            SleepLog.user == user1,
+            SleepLog.date.between(start_date, end_date),
         )
         .first()
     )
@@ -118,11 +121,11 @@ if user1:
 
 # get user with the highest average sleep quality
 best_sleeper = (
-    session.query(User.name, func.avg(Sleep.quality))
+    session.query(User.name, func.avg(SleepLog.quality))
     .join(User.sleep)
-    .filter(Sleep.date >= start_date)
+    .filter(SleepLog.date >= start_date)
     .group_by(User.name)
-    .order_by(func.avg(Sleep.quality).desc())
+    .order_by(func.avg(SleepLog.quality).desc())
     .first()
 )
 # TODO: round results
@@ -328,3 +331,7 @@ else:
 # TODO: query how many goals the user has completed
 # TODO: get the in progress goals
 # TODO: get a fitness goal / check for a specific goal type to filter
+# TODO: how many difficult workouts did the user complete this week? -- need to query both tables
+
+query_end_time = time.time()
+print(f"Query runtime: {query_end_time - query_start_time} seconds")

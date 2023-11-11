@@ -98,6 +98,8 @@ constraints do have a cost
 
 why did I not pick (workout? food?) name as the PK?
 
+without indexes: Query runtime: 3.5144259929656982 seconds
+
 
 >  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
 

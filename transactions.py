@@ -1,7 +1,7 @@
 from init_db import (
     User,
     HealthMetric,
-    Sleep,
+    SleepLog,
     Food,
     FoodLog,
     UserWorkout,

@@ -11,45 +11,46 @@ from sqlalchemy import (
     DateTime,
 )
 from sqlalchemy.orm import relationship, backref, declarative_base
+from sqlalchemy.sql import text
 
 engine = create_engine("sqlite:///health_database.db")
 Base = declarative_base()
 
 
+# User table stores user log in and personal information
 class User(Base):
     __tablename__ = "users"
+    """
+    PK choice:
+    the email is immutable and unique, so it is a good candidate for a PK
+    however, a string is not as efficient than an integer PK and almost all the 
+    queries will require the user id. Email is also not an intuitive way to search for a user
+    The surrogate id is a more efficient choice that is guaranteed to be unique
+    """
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    # there can be repeating names eg John Smith, so there is no way
-    # to get these values without the id
     age = Column(Integer, CheckConstraint("age>=0"))
-    # TODO: can't decide if this should be preset with numbers
-    gender = Column(String(10))
-    weight = Column(Float, CheckConstraint("weight>=0"))
-    height = Column(Float, CheckConstraint("height>=0"))
-    # NOTE: this is the only value that is maybeee immutable but I don't think it is
-    # an intuitive PK value, and def not a composite key value
-    email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)  # this will be hashed
+    # gender: "Male", "Female", "Nonbinary"
+    gender = Column(Integer, CheckConstraint("gender BETWEEN 1 AND 3"))
+    weight = Column(Float, CheckConstraint("weight>=0"))  # kg
+    height = Column(Float, CheckConstraint("height>=0"))  # cm
+    email = Column(String(255), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
 
-    # identify 1:many relationships with user as FK
-    # NOTE: OPTIMIZATION: you can get all goals of a user by accessing user.goals
-    # and you can get the user of a goal by accessing goal.user
-    # SQLAlchemy can use a JOIN in the query to avoid an extra round trip to the database.
-    health_metrics = relationship("HealthMetric", backref="user")
-    sleep = relationship("Sleep", backref="user")
-    # foods = relationship("Food", backref="user") TODO: update if I don't need
+    # create 2 way relationship between tables that use user_id as a FK
+    # this increases query efficiency because I do not have to manually connect the tables on the id column
+    sleep_log = relationship("SleepLog", backref="user")
     food_log = relationship("FoodLog", backref="user")
-    # workout_log = relationship("WorkoutLog", backref="user")
-    # user_workout = relationship("UserWorkout", backref="user")
-    # goals = relationship("Goal", backref="user")
+    workout_log = relationship("WorkoutLog", backref="user")
+    goals = relationship("Goal", backref="user")
 
 
+# health metric table tracks health metrics over time for users
 class HealthMetric(Base):
     __tablename__ = "health_metrics"
     id = Column(Integer, primary_key=True)
-    # TODO: maybe I should make it so all of these are required, assuming a smart device
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    # assume the metrics are added by a smart device, allowing for comprehensive reports
     heart_rate = Column(Integer, CheckConstraint("heart_rate>=0"))
     steps_taken = Column(Integer, CheckConstraint("steps_taken>=0"))
     stand_hours = Column(Integer, CheckConstraint("stand_hours>=0"))
@@ -58,16 +59,13 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
 
-class Sleep(Base):  # TODO: change this to sleep log?
-    __tablename__ = "sleep"
+# sleep log table tracks sleep habits and quality for users
+class SleepLog(Base):
+    __tablename__ = "sleep_log"
     id = Column(Integer, primary_key=True)
-    # TODO: do I need this index if I can do the backref relationship?
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    # TODO: can I make a case for using this? because I think it is a highly requested data
-    # TODO: change insertions to correctly calculate insertions
-    # TODO: need to validate this somehow?
-    duration = Column(Float, CheckConstraint("duration>=0"), nullable=False)
-    # TODO: still decide about numbering
+    # TODO: make a case for this being 2NF
+    duration = Column(Float, CheckConstraint("duration>=0"))
     quality = Column(
         Integer, CheckConstraint("quality BETWEEN 1 AND 5")
     )  # 1 = poor, 2 = fair, 3 = good, 4 = excellent
@@ -75,13 +73,23 @@ class Sleep(Base):  # TODO: change this to sleep log?
     end_time = Column(Time, nullable=False)
     date = Column(Date, nullable=False)
 
+    __table_args__ = (
+        # ensure that the duration is correct
+        CheckConstraint(
+            text(
+                "(strftime('%s', end_time) - strftime('%s', start_time)) / 3600.0 = duration"
+            )
+        ),
+    )
 
+
+# food table defines the food options available to users (new options can be added)
 class Food(Base):
     __tablename__ = "food"
-
-    id = Column(Integer, primary_key=True)  # TODO: need another id for the food?
+    # name is not primary key because it may be updated or the other entries may vary
+    id = Column(Integer, primary_key=True)
+    # assume drop down for entry normalization of name
     name = Column(String(100), nullable=False, unique=True)
-    # assume drop down for entry normalization
     calories = Column(Integer, CheckConstraint("calories>=0"), nullable=False)
     category = Column(
         Integer, CheckConstraint("category BETWEEN 1 AND 5"), nullable=False
@@ -90,12 +98,12 @@ class Food(Base):
     food_logs = relationship("FoodLog", backref="food")
 
 
+# food log table tracks food intake over time for users by referencing the food table
 class FoodLog(Base):
     __tablename__ = "food_log"
-    # need the key here because otherwise the whole table would be a composite key
+    # need the surrogate key here because otherwise the whole table would be a composite key
     # a user may eat the same food multiple times a day etc
     id = Column(Integer, primary_key=True)
-    # not sure if I need this index if I have the back  ref
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     food_id = Column(Integer, ForeignKey("food.id"), index=True, nullable=False)
     # want to keep these separate because a user might want a daily report with times
@@ -104,22 +112,30 @@ class FoodLog(Base):
     time = Column(Time)
 
 
+# workout log tracks workouts completed by user and their stats
 class WorkoutLog(Base):
-    # TODO: set foreign keys to not null if they are required
+    """
+    This is a relational table that connects the user to either a user workout or
+    a recommended workout. It is a many to many relationship because a user repeat
+    a workout many times and a workout can be done by many users. Both options are
+    included here because there are metrics applicable to both workouts than cannot be
+    predicted in the workout definition (calories burned, heart rate).
+    """
+
     __tablename__ = "workouts"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    # TODO: should I index these?
+    # TODO: keep indexes?
     user_workout_id = Column(Integer, ForeignKey("user_workout.id"), index=True)
     recommendation_id = Column(
         Integer, ForeignKey("workout_recommendation.id"), index=True
     )
-    # TODO: decide if I want this level of constraints
     calories_burned = Column(Integer, CheckConstraint("calories_burned > 0"))
     heart_rate = Column(Integer, CheckConstraint("heart_rate > 0"))
     date = Column(Date, nullable=False)
 
     __table_args__ = (
+        # ensure that only one workout is listed: a user workout or a recommended one
         CheckConstraint(
             "(user_workout_id IS NULL AND recommendation_id IS NOT NULL) OR "
             "(user_workout_id IS NOT NULL AND recommendation_id IS NULL)",
@@ -131,12 +147,14 @@ class WorkoutLog(Base):
     # workout_recommendation_backref = relationship(
     #     "WorkoutRecommendation", back_populates="workout_logs"
     # )
+    # definitely want to be able to quickly gt to user workout and recommended workouts from here
 
 
-# workout table -- store workout stats
+# user workout table holds workouts the USER defines
+# the assumption is that through the app or website, when a user logs a workout they made,
+# it is immediately added to the workout log table and connected with the user_id
 class UserWorkout(Base):
     __tablename__ = "user_workout"
-    # TODO: make sure that the user workouts will be added to the log table immediately
     id = Column(Integer, primary_key=True)
     exercise_type = Column(
         Integer,
@@ -146,23 +164,25 @@ class UserWorkout(Base):
     description = Column(String, nullable=False)
     duration = Column(
         Float, CheckConstraint("duration BETWEEN 0 AND 3"), nullable=False
-    )
+    )  # hours
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
-    )  # include in the personal log?
+    )  # 1 = easy, 2 = medium, 3 = hard
 
+    # TODO: check -- makes more sense to define it in the other place?
+    # use same convention for recommended and user defined workouts
     workout_log = relationship("WorkoutLog", backref="user_workout")
 
 
+# workout recommendation table holds generalized lists of data for users to choose from
+# characteristics are stored for improved recommendation filters
 class WorkoutRecommendation(Base):
     __tablename__ = "workout_recommendation"
 
     id = Column(Integer, primary_key=True)
     # could have the same name for multiple difficulty levels or durations so this cannot be the PK
-    workout_name = Column(
-        String(100), nullable=False
-    )  # TODO: check if I need to delete this
-    description = Column(String)
+    workout_name = Column(String(100), nullable=False)
+    description = Column(String(255))
     exercise_type = Column(
         Integer,
         CheckConstraint("exercise_type IN (1, 2, 3)"),
@@ -170,30 +190,34 @@ class WorkoutRecommendation(Base):
     )  # 1 = cardio, 2 = strength, 3 = flexibility
     duration = Column(
         Float, CheckConstraint("duration BETWEEN 0 AND 3"), nullable=False
-    )
+    )  # hours
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
-    # TODO: standardize?
+    # TODO: standardize
     # workout_logs = relationship("WorkoutLog", backref="workout_recommendation")
 
 
+# goal table tracks details of user goals and their status
 class Goal(Base):
     __tablename__ = "goals"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    description = Column(String, nullable=False)
+    description = Column(String(255), nullable=False)
+    # can get goal status based on start and end date
+    # user can change dates if needed
     start_date = Column(Date)
     end_date = Column(Date)
-    # can get goal status based on start and end date
-    # 1 = sleep, 2 = nutrition, 3 = workout ---> indicates which table to look into
-    goal_type = Column(Integer, CheckConstraint("goal_type IN (1,2,3)"))
-    # query by start and end date, and user id
+    # goal type helps with filtering and reporting
+    goal_type = Column(
+        Integer, CheckConstraint("goal_type IN (1,2,3)")
+    )  # 1 = sleep, 2 = nutrition, 3 = workout
 
     __table_args__ = (
+        # check goal starts before the end date
         CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
     )
-
+    # TODO: standardize, don't think I need this backref
     goal_users = relationship("User", backref="goals")
 
 

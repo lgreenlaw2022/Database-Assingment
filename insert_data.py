@@ -6,10 +6,9 @@ from faker_food import FoodProvider
 
 
 from init_db import (
-    engine,
     User,
     HealthMetric,
-    Sleep,
+    SleepLog,
     Food,
     FoodLog,
     UserWorkout,
@@ -29,6 +28,7 @@ for _ in range(25):
     user = User(
         name=name,
         age=age,
+        # TODO: change this to a number
         gender=random.choice(["Male", "Female", "Nonbinary"]),
         weight=random.uniform(80.0, 100.0),
         height=random.uniform(150.0, 200.0),  # cm
@@ -138,7 +138,7 @@ for user in session.query(User).all():
             random.uniform(3, 13), 2
         )  # Duration in hours rounded to 100ths place
         end_time = start_time + timedelta(hours=hours)
-        sleep = Sleep(
+        sleep = SleepLog(
             user_id=user.id,
             duration=hours,
             quality=random.randint(1, 4),  # Quality between 1 (poor) and 4 (excellent)
