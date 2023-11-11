@@ -1,5 +1,15 @@
-from init_db import User, HealthMetric, Sleep, Food, FoodLog, WorkoutRecommendation
-from sqlalchemy import func, text
+from init_db import (
+    User,
+    HealthMetric,
+    Sleep,
+    Food,
+    FoodLog,
+    WorkoutRecommendation,
+    WorkoutLog,
+    UserWorkout,
+    Goal,
+)
+from sqlalchemy import func, text, desc
 from db_session import session
 from faker import Faker
 import random
@@ -167,7 +177,7 @@ for food_log in foods_user_ate_yesterday:
 
 # Get the date 1 week ago
 # TODO: also make start_date_7
-start_date = end_date - timedelta(days=7)
+start_date_7 = end_date - timedelta(days=7)
 
 # Specify the user_id
 user_id = 1
@@ -178,7 +188,7 @@ query = (
     .join(Food)
     .filter(
         FoodLog.user_id == user_id,
-        FoodLog.date.between(start_date, end_date),
+        FoodLog.date.between(start_date_7, end_date),
         Food.category == 4,  # Filter by the vegetable food category
     )
 )
@@ -221,11 +231,7 @@ query = (
     )
     .order_by(func.random())
 )
-
-# Execute the query and fetch all results
 workouts = query.all()
-
-# Print the results
 if workouts:
     print("\nEasy cardio workouts less than 0.75 hours:")
     for workout in workouts:
@@ -240,3 +246,85 @@ query = (
     .scalar()
 )
 print(f"\nNumber of strength workouts in the recommendation table: {query}")
+
+
+# # get the most frequent recommendation users used
+# query = (
+#     session.query(
+#         WorkoutLog.recommendation_id,
+#         WorkoutLog.workout_recommendations.workout_name,
+#         func.count(WorkoutLog.recommendation_id),
+#     )
+#     .group_by(WorkoutLog.recommendation_id)
+#     .order_by(desc(func.count(WorkoutLog.recommendation_id)))
+#     .first()
+# )
+# most_frequent_rec_id, most_frequent_rec_name, frequency = query
+# print(
+#     f"\nThe most frequent recommendation all the users did is {most_frequent_rec_name} {frequency} times."
+# )
+
+# TODO: can make end_date_7 too
+end_date = start_date_7 + timedelta(days=7)
+user_id = 1
+# Query the WorkoutLog table to get the number of workouts for a specific user this week
+query = (
+    session.query(func.count(WorkoutLog.id))
+    .filter(
+        WorkoutLog.user_id == user_id, WorkoutLog.date.between(start_date_7, end_date)
+    )
+    .scalar()
+)
+print(f"\nUser {user_id} worked out {query} times this week.")
+
+workout_date = datetime.now().date() - timedelta(days=7)
+# Query the WorkoutLog table to get the total calories burned by a specific user on a specific day
+query = (
+    session.query(func.sum(WorkoutLog.calories_burned))
+    .filter(WorkoutLog.user_id == user_id, WorkoutLog.date == workout_date)
+    .scalar()
+)
+print(f"\nUser {user_id} burned {query} calories on {workout_date}.")
+
+# Query the WorkoutLog table to get the details of a user-created workout
+workout_log = (
+    session.query(WorkoutLog)
+    .filter(WorkoutLog.user_id == user_id, WorkoutLog.user_workout_id.isnot(None))
+    .first()
+)
+
+if workout_log is not None:
+    user_workout = workout_log.user_workout
+    print(
+        f"\nUser {user_id} created a workout on {workout_log.date} with the following details:"
+    )
+    print(f"Exercise type: {user_workout.exercise_type}")
+    print(f"Description: {user_workout.description}")
+    print(f"Duration: {user_workout.duration} hours")
+    print(f"Difficulty level: {user_workout.difficulty_level}")
+    print(f"Calories burned: {workout_log.calories_burned}")
+    print(f"Avg heart rate: {workout_log.heart_rate}")
+else:
+    print(f"User {user_id} has not created any workouts.")
+
+# GOAL QUERIES
+# Query the goals for user 1
+goals = session.query(Goal).filter(Goal.user_id == 1).all()
+
+# Check if the user has any goals
+if goals:
+    print("\nGoals for User 1.")
+    # Print out the details of each goal
+    for goal in goals:
+        print(f"\nGoal ID: {goal.id}")
+        print(f"Start date: {goal.start_date}")
+        print(f"End date: {goal.end_date}")
+        print(f"Goal type: {goal.goal_type}")
+        print(f"Goal description: {goal.description}")
+else:
+    print("User 1 has not set any goals.")
+
+
+# TODO: query how many goals the user has completed
+# TODO: get the in progress goals
+# TODO: get a fitness goal / check for a specific goal type to filter

@@ -13,9 +13,9 @@ from init_db import (
     Food,
     FoodLog,
     UserWorkout,
-    # WorkoutLog,
+    WorkoutLog,
     WorkoutRecommendation,
-    # Goal,
+    Goal,
 )
 
 # Create a Faker instance
@@ -23,7 +23,7 @@ fake = Faker()
 fake.add_provider(FoodProvider)
 
 # Create 100 users
-for _ in range(50):
+for _ in range(25):
     name = fake.name()
     age = random.randint(18, 60)
     user = User(
@@ -88,7 +88,7 @@ for _ in range(50):  # Create 50 workout recommendations
     session.add(workout_recommendation)
 
 # Commit the users, food, workout recommendations to the database
-# session.commit()
+session.commit()
 
 # Create dummy data for other tables
 for user in session.query(User).all():
@@ -166,64 +166,67 @@ for user in session.query(User).all():
 
     # Create dummy data for the UserWorkout and WorkoutLog tables
     # TODO: maybe I should change the insertions to just have the same description, rather than the fake sentence
-    for _ in range(30):  # Each user has 30 workouts
-        user_workout = UserWorkout(
-            exercise_type=random.choice(exercise_types),
-            description=fake.sentence(),
-            duration=random.uniform(0.05, 2.0),  # hours
-            difficulty_level=random.choice(difficulty_levels),
-        )
-        session.add(user_workout)
-
-    # user_workouts = (
-    #     session.query(UserWorkout).filter(UserWorkout.user_id == user.id).all()
-    # )
     workout_recommendations = session.query(WorkoutRecommendation).all()
+    # Get the current date
+    today = datetime.now().date()
+    start_date = today - timedelta(days=30)
+    # Create dummy data for the UserWorkout and WorkoutLog tables
+    for i in range(30):  # Each user has 30 workouts
+        # Calculate the date of the workout by backdating i days from today
+        workout_date = start_date + timedelta(days=i)
 
-#     for _ in range(
-#         365
-#     ):  # Each user has 365 workout logs (one for each day of the year)
-#         # 30% of the time, use a workout recommendation
-#         if random.random() < 0.3 and workout_recommendations:
-#             workout_recommendation = random.choice(workout_recommendations)
-#             workout_log = WorkoutLog(
-#                 user_id=user.id,
-#                 workout_recommendation_id=workout_recommendation.id,
-#                 calories_burned=random.uniform(
-#                     100.0, 500.0
-#                 ),  # Calories burned between 100 and 500
-#                 heart_rate=random.randint(60, 250),  # Heart rate between 60 and 250
-#                 date=fake.date_between(start_date="-1y", end_date="today"),
-#             )
-#         else:
-#             user_workout = random.choice(user_workouts)
-#             workout_log = WorkoutLog(
-#                 user_id=user.id,
-#                 user_workout_id=user_workout.id,
-#                 calories_burned=random.uniform(
-#                     100.0, 500.0
-#                 ),  # Calories burned between 100 and 500
-#                 heart_rate=random.randint(60, 250),  # Heart rate between 60 and 250
-#                 date=fake.date_between(start_date="-1y", end_date="today"),
-#             )
-#         session.add(workout_log)
+        # 30% of the time, use a workout recommendation
+        if random.random() < 0.3 and workout_recommendations:
+            workout_recommendation = random.choice(workout_recommendations)
+            workout_log = WorkoutLog(
+                user_id=user.id,
+                recommendation_id=workout_recommendation.id,
+                calories_burned=random.uniform(
+                    100.0, 500.0
+                ),  # Calories burned between 100 and 500
+                heart_rate=random.randint(60, 250),  # Heart rate between 60 and 250
+                date=workout_date,
+            )
+        else:
+            # User creates a workout and logs it immediately
+            user_workout = UserWorkout(
+                exercise_type=random.choice(exercise_types),
+                description=fake.sentence(),
+                duration=random.uniform(0.05, 2.0),  # hours
+                difficulty_level=random.choice(difficulty_levels),
+            )
+            session.add(user_workout)
+            session.commit()
 
-#     # Create dummy data for the Goal table
-#     goal_types = [1, 2, 3]  # 1 = sleep, 2 = nutrition, 3 = workout
+            workout_log = WorkoutLog(
+                user_id=user.id,
+                user_workout_id=user_workout.id,
+                calories_burned=random.uniform(
+                    100.0, 500.0
+                ),  # Calories burned between 100 and 500
+                heart_rate=random.randint(60, 250),  # Heart rate between 60 and 250
+                date=workout_date,
+            )
+        session.add(workout_log)
 
-#     for _ in range(5):  # Each user has 5 goals
-#         start_date = fake.date_between(start_date="-1y", end_date="today")
-#         end_date = start_date + timedelta(
-#             days=random.randint(14, 90)
-#         )  # Goal lasts between 14 and 90 days
-#         goal = Goal(
-#             user_id=user.id,
-#             description=fake.sentence(),
-#             start_date=start_date,
-#             end_date=end_date,
-#             goal_type=random.choice(goal_types),
-#         )
-#         session.add(goal)
+    # Create dummy data for the Goal table
+    # TODO: probably should move this to the top of the file
+    goal_types = [1, 2, 3]  # 1 = sleep, 2 = nutrition, 3 = workout
+
+    for _ in range(2):  # Each user has 52 goals
+        start_date = datetime.now().date() - timedelta(days=random.randint(0, 30))
+        end_date = start_date + timedelta(
+            days=random.randint(7, 30)
+        )  # Goal lasts between 14 and 30 days
+        goal_type = random.choice(goal_types)
+        goal = Goal(
+            user_id=user.id,
+            description=(f"Goal {_}, type {goal_type}"),
+            start_date=start_date,
+            end_date=end_date,
+            goal_type=goal_type,
+        )
+        session.add(goal)
 
 # Commit the dummy data to the database
 # TODO: explain why I am only committing once at the end

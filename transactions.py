@@ -228,3 +228,4 @@ else:
 
 
 # TODO: check that only one of the workout FK exist for the workout log entries
+# TODO: add transactions for the workout log too

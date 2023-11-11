@@ -110,8 +110,10 @@ class WorkoutLog(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     # TODO: should I index these?
-    user_workout_id = Column(Integer, ForeignKey("user-workout.id"), index=True)
-    recommendation_id = Column(Integer, ForeignKey("recommendation.id"), index=True)
+    user_workout_id = Column(Integer, ForeignKey("user_workout.id"), index=True)
+    recommendation_id = Column(
+        Integer, ForeignKey("workout_recommendation.id"), index=True
+    )
     # TODO: decide if I want this level of constraints
     calories_burned = Column(Integer, CheckConstraint("calories_burned > 0"))
     heart_rate = Column(Integer, CheckConstraint("heart_rate > 0"))
@@ -124,6 +126,11 @@ class WorkoutLog(Base):
             name="chk_workout_recommendation_exclusive",
         ),
     )
+
+    # TODO: update backrefs to be in the directions I want them to be
+    # workout_recommendation_backref = relationship(
+    #     "WorkoutRecommendation", back_populates="workout_logs"
+    # )
 
 
 # workout table -- store workout stats
@@ -148,7 +155,7 @@ class UserWorkout(Base):
 
 
 class WorkoutRecommendation(Base):
-    __tablename__ = "workout_recommendations"
+    __tablename__ = "workout_recommendation"
 
     id = Column(Integer, primary_key=True)
     # could have the same name for multiple difficulty levels or durations so this cannot be the PK
@@ -167,22 +174,27 @@ class WorkoutRecommendation(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
+    # TODO: standardize?
+    # workout_logs = relationship("WorkoutLog", backref="workout_recommendation")
 
-    workout_log = relationship("WorkoutLog", backref="workout_recommendation")
 
+class Goal(Base):
+    __tablename__ = "goals"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    description = Column(String, nullable=False)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    # can get goal status based on start and end date
+    # 1 = sleep, 2 = nutrition, 3 = workout ---> indicates which table to look into
+    goal_type = Column(Integer, CheckConstraint("goal_type IN (1,2,3)"))
+    # query by start and end date, and user id
 
-# class Goal(Base):
-#     __tablename__ = "goals"
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     description = Column(String)
-#     start_date = Column(Date)
-#     end_date = Column(Date)
-#     # can get goal status based on start and end date
-#     goal_type = Column(
-#         Integer
-#     )  # 1 = sleep, 2 = nutrition, 3 = workout ---> indicates which table to look into
-#     # query by start and end date, and user id
+    __table_args__ = (
+        CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
+    )
+
+    goal_users = relationship("User", backref="goals")
 
 
 Base.metadata.create_all(engine)

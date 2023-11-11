@@ -84,20 +84,22 @@ The workout log then holds the user's id and either an id for a user defined wor
 
 ### optimization
 
- optimize FKs by adding indexes to them to prevent costly join operations
+optimize FKs by adding indexes to them to prevent costly join operations
 
- backrefs also speed up joins with user
+backrefs also speed up joins with user
+- You don't necessarily need both backrefs. A backref is a convenient feature in SQLAlchemy that adds a new property to the other class in a relationship. It's a way to navigate from one side of the relationship to the other.
+- If you have a WorkoutLog instance and you want to get the associated WorkoutRecommendation, you would use the workout_recommendation backref. If you have a WorkoutRecommendation instance and you want to get all associated WorkoutLog instances, you would use the workout_logs backref.
 
- primary key values should not be updated
+primary key values should not be updated
 
- talk about acid for committing data?
- 
- constraints do have a cost
+talk about acid for committing data?
 
- why did I not pick (workout? food?) name as the PK?
+constraints do have a cost
 
-
- >  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
+why did I not pick (workout? food?) name as the PK?
 
 
- ### file structure
+>  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
+
+
+### file structure
