@@ -16,11 +16,21 @@ from init_db import (
     Goal,
 )
 
-# TODO: comments, explain ACID
-# Note that 3-4 seconds of the file run time is due to instantiating the faker module.
+# Note that 3-4 seconds of the run time is due to instantiating the faker module.
 fake = Faker()
 # Add the Faker FoodProvider to the Faker instance
 fake.add_provider(FoodProvider)
+
+
+"""
+session add and commit behaviors:
+It is important that the session is committed after each table is filled.
+If a rollback occurs, and we commit frequently, we will log some of the data.
+Only after each table is filled do we commit. This is relevant for user data,
+since these insertions are bulk insertions, we need to fully close each users out
+or we may end up with duplicate or extra data. Commiting at the end is also 
+especially important for connecting the workout log to user workouts. (explained below)
+"""
 
 ### INSERT USERS ###
 genders = [1, 2, 3]  # M, F, NonBinary
@@ -56,7 +66,7 @@ while len(dishes) < 36:
 for _ in range(60):  # add 60 foods to the database
     category = random.randint(1, 5)
     if category == 5:  # 1/5 of the time, category is fruit
-        if not fruits:  # If the set is empty, skip to the next iteration
+        if not fruits:  # If no more unique fruits, skip because enough fruits loaded
             continue
         name = fruits.pop()  # unique fruit
     elif category == 4:  # 1/5 of the time, category is vegetable
@@ -92,16 +102,14 @@ for i in range(50):  # Create 50 workout recommendations
 session.commit()
 
 
-# frequently used insertion start date, backdated 30 days
+# frequently used insertion start date (backdated 30 days (~1 month) ago)
 start_date_30 = datetime.now() - timedelta(days=30)
-
-# Create dummy data for other tables with user FKs
 """
 I have separated the insertions out into different loops over the user list
-This helps make my code more readable and helps me commit the data to the database
-in the correct order and as soon as the table is filled. This helps in the case 
-of a rollback or computer crash. This choice comes at the cost of run time performance. 
-In practice the data would not be inserted like this (decreased insertion time).
+This helps make my code more readable, easier to debug, and helps me commit the data to 
+the database in the correct order and as soon as the table is filled. This helps 
+in the case of a rollback or computer crash. This choice comes at the cost 
+of run time performance. In practice the data would (and could) not be inserted like this.
 """
 ### Insert data for HealthMetric table ###
 for user in session.query(User).all():
@@ -121,7 +129,7 @@ for user in session.query(User).all():
         timestamp = datetime.combine(current_date.date(), random_time)
         health_metric = HealthMetric(
             user_id=user.id,
-            # this heart rate is resting heart rate only (workout log provides active heart rate)
+            # this heart rate is resting heart rate (workout log gives active rate)
             heart_rate=random.randint(40, 120),
             steps_taken=random.randint(0, 20000),
             stand_hours=random.randint(0, 20),
@@ -203,9 +211,15 @@ for user in session.query(User).all():
                 difficulty_level=random.choice(difficulty_levels),
             )
             session.add(user_workout)
-            # need to commit each workout so that it can be logged
-            # TODO: how can I change this, doesn't align with ACID
-            session.commit()
+            """
+            flush assigns an ID to user_workout immediately, allowing 
+            WorkoutLog to use it. This is done without having to commit 
+            after each insertion, which would be less efficient. Critically,
+            it also ensures that the relationship between user_workout and 
+            WorkoutLog is preserved even if a system crash occurs after 
+            the user_workout is committed.
+            """
+            session.flush()
 
             workout_log = WorkoutLog(
                 user_id=user.id,

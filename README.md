@@ -26,7 +26,7 @@ python3 test.py
 
 `tests.py`: runs a unit test suite for each model, verifying CRUD operations and constraints (including FK constraints). 
 
-<!-- TODO: include transactions file? -->
+<!-- TODO: include transactions file? if not, address how testing helps with this -->
 ## Health and Fitness Tracking App Description
 
 ### Primary Objectives
@@ -161,7 +161,6 @@ can be expressed as
 ``` python
 goals = user1.goals
 ```
-<!-- TODO: talked about acid for committing data? -->
 
 
 
