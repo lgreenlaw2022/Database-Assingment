@@ -13,11 +13,11 @@ from sqlalchemy import (
     Index,
 )
 from sqlalchemy.orm import relationship, backref, declarative_base
-from sqlalchemy.sql import text
 
 engine = create_engine("sqlite:///health_database.db")
 
 
+# enable foreign key support for sqlite
 @event.listens_for(engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
@@ -41,19 +41,22 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     age = Column(Integer, CheckConstraint("age>=0"))
-    # gender: "Male", "Female", "Nonbinary"
-    gender = Column(Integer, CheckConstraint("gender BETWEEN 1 AND 3"))
+    gender = Column(
+        Integer, CheckConstraint("gender BETWEEN 1 AND 3")
+    )  # gender: "Male", "Female", "Nonbinary"
     weight = Column(Float, CheckConstraint("weight>=0"))  # kg
     height = Column(Float, CheckConstraint("height>=0"))  # cm
     email = Column(String(255), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
 
     # create 2 way relationship between tables that use user_id as a FK
-    # this increases query efficiency because I do not have to manually connect the tables on the id column
+    # this increases query efficiency because I do not have to manually
+    # connect the tables on the id column
     sleep_log = relationship("SleepLog", backref="user")
     food_log = relationship("FoodLog", backref="user")
     workout_log = relationship("WorkoutLog", backref="user")
     goals = relationship("Goal", backref="user")
+    health_metrics = relationship("HealthMetric", backref="user")
 
 
 # health metric table tracks health metrics over time for users
@@ -69,11 +72,8 @@ class HealthMetric(Base):
     diastolic_bp = Column(Integer, CheckConstraint("diastolic_bp>=0"))
     timestamp = Column(DateTime, nullable=False)
 
-
-# Create a composite index on user_id and timestamp
-Index(
-    "idx_healthmetrics_userid_timestamp", HealthMetric.user_id, HealthMetric.timestamp
-)
+    # Create a composite index on user_id and timestamp
+    Index("idx_healthmetrics_userid_timestamp", "user_id", "timestamp")
 
 
 # sleep log table tracks sleep habits and quality for users
@@ -90,16 +90,8 @@ class SleepLog(Base):
     end_time = Column(Time, nullable=False)
     date = Column(Date, nullable=False)
 
-    # TODO: what is up with this
-    # __table_args__ = (
-    #     CheckConstraint(
-    #         calculate_end_time(start_time, duration) == end_time,
-    #     ),
-    # )
-
-
-# Create a composite index on user_id and date
-Index("idx_sleeplog_userid_date", SleepLog.user_id, SleepLog.date)
+    # Create a composite index on user_id and date
+    Index("idx_sleeplog_userid_date", "user_id", "date")
 
 
 # food table defines the food options available to users (new options can be added)
@@ -113,8 +105,6 @@ class Food(Base):
     category = Column(
         Integer, CheckConstraint("category BETWEEN 1 AND 5"), nullable=False
     )  # 1 = protein, 2 = carb, 3 = fat, 4 = veggie, 5 = fruit
-
-    food_logs = relationship("FoodLog", backref="food")
 
 
 # food log table tracks food intake over time for users by referencing the food table
@@ -130,9 +120,10 @@ class FoodLog(Base):
     date = Column(Date, nullable=False)
     time = Column(Time)
 
+    food = relationship("Food", backref="food_log")
 
-# Create a composite index on user_id and date
-Index("idx_foodlog_userid_date", FoodLog.user_id, FoodLog.date)
+    # Create a composite index on user_id and date
+    Index("idx_foodlog_userid_date", "user_id", "date")
 
 
 # workout log tracks workouts completed by user and their stats
@@ -148,7 +139,6 @@ class WorkoutLog(Base):
     __tablename__ = "workout_log"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    # TODO: keep indexes?
     user_workout_id = Column(Integer, ForeignKey("user_workout.id"), index=True)
     recommendation_id = Column(
         Integer, ForeignKey("workout_recommendation.id"), index=True
@@ -165,15 +155,12 @@ class WorkoutLog(Base):
             name="chk_workout_recommendation_exclusive",
         ),
     )
+    workout_recommendation = relationship(
+        "WorkoutRecommendation", back_populates="workout_log"
+    )
+    user_workout = relationship("UserWorkout", back_populates="workout_log")
 
-    # TODO: update backrefs to be in the directions I want them to be
-    # workout_recommendation_backref = relationship(
-    #     "WorkoutRecommendation", back_populates="workout_logs"
-    # )
-    # definitely want to be able to quickly gt to user workout and recommended workouts from here
-
-
-Index("idx_workoutlog_userid_date", WorkoutLog.user_id, WorkoutLog.date)
+    Index("idx_workoutlog_userid_date", "user_id", "date")
 
 
 # user workout table holds workouts the USER defines
@@ -194,10 +181,6 @@ class UserWorkout(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
-
-    # TODO: check -- makes more sense to define it in the other place?
-    # use same convention for recommended and user defined workouts
-    workout_log = relationship("WorkoutLog", backref="user_workout")
 
 
 # workout recommendation table holds generalized lists of data for users to choose from
@@ -220,8 +203,6 @@ class WorkoutRecommendation(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
-    # TODO: standardize
-    # workout_logs = relationship("WorkoutLog", backref="workout_recommendation")
 
 
 # goal table tracks details of user goals and their status

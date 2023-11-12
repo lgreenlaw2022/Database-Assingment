@@ -80,7 +80,7 @@ There is also user workout table. The workout log connects the user workout to t
 
 The workout log then holds the user's id and either an id for a user defined workout or one of the ids for a recommended work out. There is a constraint on these columns so that only 1 can be NOT NULL at a time. This allows me to show the relationship between the user and their workout in a streamlined way. Further, this table stores the stats that are not specific to the details of the workout. These are the calories burned and the average heart rate. Since these are specific to the user and the workout, they are in the relational table. These are data points people will want. For example, someone may want to subtract the number of calories they burned that day from the number of calories they ate that day to see if they are on track to reach a goal.
 
-
+### Goals
 
 ### optimization
 
@@ -114,5 +114,5 @@ TOTAL Query runtime: 4.646673679351807 seconds
 
 >  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
 
-
+comment on why I standardized multi choice to be numbers
 ### file structure
