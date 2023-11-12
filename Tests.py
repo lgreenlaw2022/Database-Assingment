@@ -1,5 +1,5 @@
 import unittest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta, date
@@ -14,17 +14,23 @@ from init_db import (
     WorkoutRecommendation,
     UserWorkout,
     WorkoutLog,
-    Goal,
 )  # import your Base and models from your application
 
 
-# TODO: will have to go back and check the nuallable and foreign id constraints are enforced
+# TODO: will have to go back and check the nullable and foreign id constraints are enforced
 class BaseTestCase(unittest.TestCase):
     def setUp(self):
         # Set up the test database
         self.engine = create_engine(
             "sqlite:///:memory:"
         )  # Use an in-memory SQLite database for testing
+
+        @event.listens_for(self.engine, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON;")
+            cursor.close()
+
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
         Base.metadata.create_all(self.engine)  # Create the tables in the database
@@ -44,7 +50,7 @@ class TestUser(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -67,7 +73,7 @@ class TestUser(BaseTestCase):
         # Test that you can delete the user
         self.session.delete(self.user)
         self.session.commit()
-        self.assertIsNone(self.session.query(User).get(self.user.id))
+        self.assertIsNone(self.session.get(User, self.user.id))
 
 
 class TestHealthMetric(BaseTestCase):
@@ -79,7 +85,7 @@ class TestHealthMetric(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -115,7 +121,7 @@ class TestHealthMetric(BaseTestCase):
         # Test that you can delete the health metric
         self.session.delete(self.metric)
         self.session.commit()
-        self.assertIsNone(self.session.query(HealthMetric).get(self.metric.id))
+        self.assertIsNone(self.session.get(HealthMetric, self.metric.id))
 
     def test_heart_rate_constraint(self):
         # Test that the heart_rate constraint is enforced
@@ -176,7 +182,7 @@ class TestSleep(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -186,15 +192,16 @@ class TestSleep(BaseTestCase):
         self.session.commit()
 
         # Create a sleep record for the user
-        start_time = datetime.now().time()
-        duration = 8
+        start_time = datetime.now()
+        hours = 8
+        duration = timedelta(hours=hours)
         self.sleep = SleepLog(
             user_id=self.user.id,
-            duration=duration,
+            duration=hours,
             quality=3,
-            start_time=start_time,
-            end_time=start_time + timedelta(hours=duration),
-            date=datetime.now().date(),
+            start_time=start_time.time(),
+            end_time=(start_time + duration).time(),
+            date=start_time.date(),
         )
         self.session.add(self.sleep)
         self.session.commit()
@@ -205,36 +212,41 @@ class TestSleep(BaseTestCase):
 
     def test_sleep_update(self):
         # Test that you can update the sleep record
-        self.sleep.sleep_duration = 9
+        self.sleep.duration = 9
         self.session.commit()
-        self.assertEqual(self.sleep.sleep_duration, 9)
+        self.assertEqual(self.sleep.duration, 9)
 
     def test_sleep_delete(self):
         # Test that you can delete the sleep record
         self.session.delete(self.sleep)
         self.session.commit()
-        self.assertIsNone(self.session.query(SleepLog).get(self.sleep.id))
+        self.assertIsNone(self.session.get(SleepLog, self.sleep.id))
 
     def test_sleep_duration_constraint(self):
         # Test that the sleep_duration constraint is enforced
         with self.assertRaises(IntegrityError):
-            self.sleep.sleep_duration = -1
+            self.sleep.duration = -1
             self.session.commit()
 
     def test_sleep_quality_constraint(self):
         # Test that the sleep_quality constraint is enforced
         with self.assertRaises(IntegrityError):
-            self.sleep.sleep_quality = 0
+            self.sleep.quality = 0
             self.session.commit()
 
     def test_user_id_foreign_key_constraint(self):
         # Test that the user_id foreign key constraint is enforced
         with self.assertRaises(IntegrityError):
+            start_time = datetime.now()
+            hours = 8
+            duration = timedelta(hours=hours)
             invalid_sleep = SleepLog(
                 user_id=9999,
-                sleep_duration=8,
-                sleep_quality=80,
-                timestamp=datetime.now(),
+                duration=hours,
+                quality=3,
+                start_time=start_time.time(),
+                end_time=(start_time + duration).time(),
+                date=start_time.date(),
             )
             self.session.add(invalid_sleep)
             self.session.commit()
@@ -264,7 +276,7 @@ class TestFood(BaseTestCase):
         # Test that you can delete the food item
         self.session.delete(self.food)
         self.session.commit()
-        self.assertIsNone(self.session.query(Food).get(self.food.id))
+        self.assertIsNone(self.session.get(Food, self.food.id))
 
     def test_food_name_unique_constraint(self):
         # Test that the name unique constraint is enforced
@@ -313,7 +325,7 @@ class TestFoodLog(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -348,7 +360,7 @@ class TestFoodLog(BaseTestCase):
         # Test that you can delete the food log entry
         self.session.delete(self.food_log)
         self.session.commit()
-        self.assertIsNone(self.session.query(FoodLog).get(self.food_log.id))
+        self.assertIsNone(self.session.get(FoodLog, self.food_log.id))
 
     def test_user_id_foreign_key_constraint(self):
         # Test that the user_id foreign key constraint is enforced
@@ -406,9 +418,7 @@ class TestWorkoutRecommendation(BaseTestCase):
         # Test that you can delete the workout recommendation
         self.session.delete(self.workout)
         self.session.commit()
-        self.assertIsNone(
-            self.session.query(WorkoutRecommendation).get(self.workout.id)
-        )
+        self.assertIsNone(self.session.get(WorkoutRecommendation, self.workout.id))
 
     def test_exercise_type_constraint(self):
         # Test that the exercise_type constraint is enforced
@@ -458,7 +468,7 @@ class TestUserWorkout(BaseTestCase):
         # Test that you can delete the user workout
         self.session.delete(self.user_workout)
         self.session.commit()
-        self.assertIsNone(self.session.query(UserWorkout).get(self.user_workout.id))
+        self.assertIsNone(self.session.get(UserWorkout, self.user_workout.id))
 
     def test_exercise_type_constraint(self):
         # Test that the exercise_type constraint is enforced
@@ -488,7 +498,7 @@ class TestWorkoutLog(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -538,7 +548,7 @@ class TestWorkoutLog(BaseTestCase):
         # Test that you can delete the workout log entry
         self.session.delete(self.workout_log)
         self.session.commit()
-        self.assertIsNone(self.session.query(WorkoutLog).get(self.workout_log.id))
+        self.assertIsNone(self.session.get(WorkoutLog, self.workout_log.id))
 
     def test_user_id_foreign_key_constraint(self):
         # Test that the user_id foreign key constraint is enforced
@@ -607,7 +617,7 @@ class TestGoal(BaseTestCase):
         self.user = User(
             name="Test User",
             age=30,
-            gender="Male",
+            gender=1,
             weight=70.0,
             height=170.0,
             email="test@example.com",
@@ -641,7 +651,7 @@ class TestGoal(BaseTestCase):
         # Test that you can delete the goal
         self.session.delete(self.goal)
         self.session.commit()
-        self.assertIsNone(self.session.query(Goal).get(self.goal.id))
+        self.assertIsNone(self.session.get(Goal, self.goal.id))
 
     def test_user_id_foreign_key_constraint(self):
         # Test that the user_id foreign key constraint is enforced

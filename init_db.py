@@ -9,11 +9,21 @@ from sqlalchemy import (
     Time,
     CheckConstraint,
     DateTime,
+    event,
 )
 from sqlalchemy.orm import relationship, backref, declarative_base
 from sqlalchemy.sql import text
 
 engine = create_engine("sqlite:///health_database.db")
+
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON;")
+    cursor.close()
+
+
 Base = declarative_base()
 
 
@@ -73,14 +83,12 @@ class SleepLog(Base):
     end_time = Column(Time, nullable=False)
     date = Column(Date, nullable=False)
 
-    __table_args__ = (
-        # ensure that the duration is correct
-        CheckConstraint(
-            text(
-                "(strftime('%s', end_time) - strftime('%s', start_time)) / 3600.0 = duration"
-            )
-        ),
-    )
+    # TODO: what is up with this
+    # __table_args__ = (
+    #     CheckConstraint(
+    #         calculate_end_time(start_time, duration) == end_time,
+    #     ),
+    # )
 
 
 # food table defines the food options available to users (new options can be added)
@@ -122,7 +130,7 @@ class WorkoutLog(Base):
     predicted in the workout definition (calories burned, heart rate).
     """
 
-    __tablename__ = "workouts"
+    __tablename__ = "workout_log"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     # TODO: keep indexes?
@@ -217,8 +225,6 @@ class Goal(Base):
         # check goal starts before the end date
         CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
     )
-    # TODO: standardize, don't think I need this backref
-    goal_users = relationship("User", backref="goals")
 
 
 Base.metadata.create_all(engine)

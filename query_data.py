@@ -122,7 +122,7 @@ if user1:
 # get user with the highest average sleep quality
 best_sleeper = (
     session.query(User.name, func.avg(SleepLog.quality))
-    .join(User.sleep)
+    .join(User.sleep_log)
     .filter(SleepLog.date >= start_date)
     .group_by(User.name)
     .order_by(func.avg(SleepLog.quality).desc())
@@ -130,7 +130,7 @@ best_sleeper = (
 )
 # TODO: round results
 print(
-    f"User with the highest average sleep quality over the last month: {best_sleeper.name}, Quality: {best_sleeper[1]}"
+    f"\nUser with the highest average sleep quality over the last month: {best_sleeper.name}, Quality: {best_sleeper[1]}"
 )
 
 # FOOD AND FOOD LOG QUERIES
@@ -155,24 +155,18 @@ for food in most_popular_foods:
 # entries for user 1 in the last day
 # Get the date 1 day ago
 end_date = datetime.now().date()
-start_date = end_date - timedelta(days=1)
-
-# Specify the user_id
-user_id = 1  # Replace with the actual user_id
-
+date = end_date - timedelta(days=1)
+user_id = 1
 # Query the FoodLog table and use the backref to Food
 query = (
     session.query(FoodLog)
     .join(Food)
     .filter(
-        FoodLog.user_id == user_id, FoodLog.date.between(start_date, end_date)
+        FoodLog.user_id == user_id, FoodLog.date == start_date
     )  # TODO: th user id shoudl be indexed
 )
-
 # Execute the query and fetch all results
 foods_user_ate_yesterday = query.all()
-
-# Print the results
 print("\nFoods user 1 ate yesterday:")
 for food_log in foods_user_ate_yesterday:
     print(f"Food Name: {food_log.food.name}, Time: {food_log.time}")
@@ -181,8 +175,6 @@ for food_log in foods_user_ate_yesterday:
 # Get the date 1 week ago
 # TODO: also make start_date_7
 start_date_7 = end_date - timedelta(days=7)
-
-# Specify the user_id
 user_id = 1
 
 # Query the FoodLog table and use the backref to Food
@@ -195,13 +187,10 @@ query = (
         Food.category == 4,  # Filter by the vegetable food category
     )
 )
-
 # Execute the query and fetch all results
 num_vegetables_last_week = (
     query.count()
 )  # Use count() to get the number of times user 1 ate vegetables
-
-# Print the results
 print(
     f"\nNumber of times user 1 ate vegetables in the last week: {num_vegetables_last_week}"
 )
