@@ -197,12 +197,19 @@ class WorkoutRecommendation(Base):
         Integer,
         CheckConstraint("exercise_type IN (1, 2, 3)"),
         nullable=False,
+        index=True,
     )  # 1 = cardio, 2 = strength, 3 = flexibility
     duration = Column(
-        Float, CheckConstraint("duration BETWEEN 0 AND 3"), nullable=False
+        Float,
+        CheckConstraint("duration BETWEEN 0 AND 3"),
+        nullable=False,
+        index=True,
     )  # hours
     difficulty_level = Column(
-        Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
+        Integer,
+        CheckConstraint("difficulty_level IN (1, 2, 3)"),
+        nullable=False,
+        index=True,
     )  # 1 = easy, 2 = medium, 3 = hard
     # workout_log = relationship("WorkoutLog", back_populates="workout_recommendation")
 
@@ -226,6 +233,8 @@ class Goal(Base):
         # check goal starts before the end date
         CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
     )
+    # TODO: explain
+    __table_args__ = (Index("idx_user_id_end_date", "user_id", "end_date"),)
 
 
 Base.metadata.create_all(engine)
