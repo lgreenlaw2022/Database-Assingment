@@ -100,6 +100,17 @@ why did I not pick (workout? food?) name as the PK?
 
 without indexes: Query runtime: 3.5144259929656982 seconds
 
+after date composite indexes: Query runtime: 2.2841548919677734 seconds
+
+QUERY DEBUGGING:
+USER Query runtime: 4.490666627883911 seconds
+HEALTH METRICS Query runtime: 4.516571998596191 seconds
+SLEEP runtime: 4.547794342041016 seconds
+FOOD Query runtime: 4.593246221542358 seconds
+WORKOUT Query runtime: 4.636799573898315 seconds
+GOAL Query runtime: 4.646570444107056 seconds
+TOTAL Query runtime: 4.646673679351807 seconds
+
 
 >  I propose ONLY adding a constraint where and when it is truly and provably necessary. That way databases are allowed to focus just on storing and retrieving data, which is the role they truly excel at.
 

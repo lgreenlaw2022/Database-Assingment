@@ -10,6 +10,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     event,
+    Index,
 )
 from sqlalchemy.orm import relationship, backref, declarative_base
 from sqlalchemy.sql import text
@@ -69,6 +70,12 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
 
+# Create a composite index on user_id and timestamp
+Index(
+    "idx_healthmetrics_userid_timestamp", HealthMetric.user_id, HealthMetric.timestamp
+)
+
+
 # sleep log table tracks sleep habits and quality for users
 class SleepLog(Base):
     __tablename__ = "sleep_log"
@@ -89,6 +96,10 @@ class SleepLog(Base):
     #         calculate_end_time(start_time, duration) == end_time,
     #     ),
     # )
+
+
+# Create a composite index on user_id and date
+Index("idx_sleeplog_userid_date", SleepLog.user_id, SleepLog.date)
 
 
 # food table defines the food options available to users (new options can be added)
@@ -118,6 +129,10 @@ class FoodLog(Base):
     # or a long term report with dates
     date = Column(Date, nullable=False)
     time = Column(Time)
+
+
+# Create a composite index on user_id and date
+Index("idx_foodlog_userid_date", FoodLog.user_id, FoodLog.date)
 
 
 # workout log tracks workouts completed by user and their stats
@@ -156,6 +171,9 @@ class WorkoutLog(Base):
     #     "WorkoutRecommendation", back_populates="workout_logs"
     # )
     # definitely want to be able to quickly gt to user workout and recommended workouts from here
+
+
+Index("idx_workoutlog_userid_date", WorkoutLog.user_id, WorkoutLog.date)
 
 
 # user workout table holds workouts the USER defines

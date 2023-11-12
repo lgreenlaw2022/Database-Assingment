@@ -9,17 +9,13 @@ from init_db import (
     UserWorkout,
     Goal,
 )
-from sqlalchemy import func, text, desc
+from sqlalchemy import func, text
 from db_session import session
-from faker import Faker
-import random
 from datetime import datetime, timedelta
 import time
 
 
 query_start_time = time.time()
-# initialize Faker for transaction demonstrations
-fake = Faker()
 # TODO: switch to this global?
 # Get the date 30 days ago
 start_date_30 = datetime.now() - timedelta(days=30)
@@ -34,6 +30,9 @@ for user in all_users:
 print("\nTotal User Count:")
 user_count = session.query(func.count(User.id)).scalar()
 print(user_count)
+
+# query_end_time = time.time()
+# print(f"USER Query runtime: {query_end_time - query_start_time} seconds")
 
 # HEALTH_METRIC TABLE QUERIES
 # TODO: review indexes for this
@@ -60,12 +59,12 @@ if user1:
         .first()
     )
 
-    print(f"\nAverage health metrics for {user1.name} over the last 30 days:")
-    print(
-        f"Heart Rate: {avg_metrics[0]}, Steps Taken: {avg_metrics[1]}, Stand Hours: {avg_metrics[2]}, Systolic BP: {avg_metrics[3]}, Diastolic BP: {avg_metrics[4]}"
-    )
-else:
-    print("User not found.")
+#     print(f"\nAverage health metrics for {user1.name} over the last 30 days:")
+#     print(
+#         f"Heart Rate: {avg_metrics[0]}, Steps Taken: {avg_metrics[1]}, Stand Hours: {avg_metrics[2]}, Systolic BP: {avg_metrics[3]}, Diastolic BP: {avg_metrics[4]}"
+#     )
+# else:
+#     print("User not found.")
 
 # Get the user with id 2
 user2 = session.query(User).filter(User.id == 2).first()
@@ -86,9 +85,12 @@ if user2:
         .scalar()
     )
 
-    print(f"\nAverage steps per day for {user2.name} over the last 7 days: {avg_steps}")
-else:
-    print("User not found.")
+#     print(f"\nAverage steps per day for {user2.name} over the last 7 days: {avg_steps}")
+# else:
+#     print("User not found.")
+
+# query_end_time = time.time()
+# print(f"HEALTH METRICS Query runtime: {query_end_time - query_start_time} seconds")
 
 # SLEEP TABLE QUERIES
 # demonstrates useful calls for sleep statistics
@@ -114,10 +116,11 @@ if user1:
         .first()
     )
 
-    print(
-        f"\nAverage sleep duration and quality for {user1.name} over the last 30 days:"
-    )
-    print(f"Duration: {avg_sleep[0]}, Quality: {avg_sleep[1]}")
+    # print(
+    #     f"\nAverage sleep duration and quality for {user1.name} over the last 30 days:"
+    # )
+    # print(f"Duration: {avg_sleep[0]}, Quality: {avg_sleep[1]}")
+
 
 # get user with the highest average sleep quality
 best_sleeper = (
@@ -129,9 +132,12 @@ best_sleeper = (
     .first()
 )
 # TODO: round results
-print(
-    f"\nUser with the highest average sleep quality over the last month: {best_sleeper.name}, Quality: {best_sleeper[1]}"
-)
+# print(
+#     f"\nUser with the highest average sleep quality over the last month: {best_sleeper.name}, Quality: {best_sleeper[1]}"
+# )
+
+# query_end_time = time.time()
+# print(f"SLEEP runtime: {query_end_time - query_start_time} seconds")
 
 # FOOD AND FOOD LOG QUERIES
 # 3 most popular foods for all users
@@ -148,9 +154,9 @@ query = (
 most_popular_foods = query.all()
 
 # Print the results
-for food in most_popular_foods:
-    print("\n3 most popular foods across all users")
-    print(f"Food ID: {food.name}, Count: {food.total}")
+# for food in most_popular_foods:
+#     print("\n3 most popular foods across all users")
+#     print(f"Food ID: {food.name}, Count: {food.total}")
 
 # entries for user 1 in the last day
 # Get the date 1 day ago
@@ -167,9 +173,9 @@ query = (
 )
 # Execute the query and fetch all results
 foods_user_ate_yesterday = query.all()
-print("\nFoods user 1 ate yesterday:")
-for food_log in foods_user_ate_yesterday:
-    print(f"Food Name: {food_log.food.name}, Time: {food_log.time}")
+# print("\nFoods user 1 ate yesterday:")
+# for food_log in foods_user_ate_yesterday:
+#     print(f"Food Name: {food_log.food.name}, Time: {food_log.time}")
 
 
 # Get the date 1 week ago
@@ -191,9 +197,9 @@ query = (
 num_vegetables_last_week = (
     query.count()
 )  # Use count() to get the number of times user 1 ate vegetables
-print(
-    f"\nNumber of times user 1 ate vegetables in the last week: {num_vegetables_last_week}"
-)
+# print(
+#     f"\nNumber of times user 1 ate vegetables in the last week: {num_vegetables_last_week}"
+# )
 
 # Specify the user_id and date
 user_id = 1
@@ -209,7 +215,9 @@ query = (
     )
 )
 total_calories = query.scalar()  # Use scalar() to get the sum of calories
-print(f"\nTotal calories consumed by user {user_id} on {date.date()}: {total_calories}")
+# print(f"\nTotal calories consumed by user {user_id} on {date.date()}: {total_calories}")
+# query_end_time = time.time()
+# print(f"FOOD Query runtime: {query_end_time - query_start_time} seconds")
 
 # WORKOUT RECOMMENDATION QUERIES
 # get a recommendation for an easy cardio workout less than 0.5 hours
@@ -224,12 +232,12 @@ query = (
     .order_by(func.random())
 )
 workouts = query.all()
-if workouts:
-    print("\nEasy cardio workouts less than 0.75 hours:")
-    for workout in workouts:
-        print(f"{workout.workout_name} (Duration: {round(workout.duration, 2)} hours)")
-else:
-    print("\nNo matching workouts were found.")
+# if workouts:
+#     print("\nEasy cardio workouts less than 0.75 hours:")
+#     for workout in workouts:
+#         print(f"{workout.workout_name} (Duration: {round(workout.duration, 2)} hours)")
+# else:
+#     print("\nNo matching workouts were found.")
 
 # number of strength workouts in recommendation table
 query = (
@@ -237,7 +245,7 @@ query = (
     .filter(WorkoutRecommendation.exercise_type == 2)
     .scalar()
 )
-print(f"\nNumber of strength workouts in the recommendation table: {query}")
+# print(f"\nNumber of strength workouts in the recommendation table: {query}")
 
 
 # # get the most frequent recommendation users used
@@ -267,7 +275,7 @@ query = (
     )
     .scalar()
 )
-print(f"\nUser {user_id} worked out {query} times this week.")
+# print(f"\nUser {user_id} worked out {query} times this week.")
 
 workout_date = datetime.now().date() - timedelta(days=7)
 # Query the WorkoutLog table to get the total calories burned by a specific user on a specific day
@@ -276,7 +284,7 @@ query = (
     .filter(WorkoutLog.user_id == user_id, WorkoutLog.date == workout_date)
     .scalar()
 )
-print(f"\nUser {user_id} burned {query} calories on {workout_date}.")
+# print(f"\nUser {user_id} burned {query} calories on {workout_date}.")
 
 # Query the WorkoutLog table to get the details of a user-created workout
 workout_log = (
@@ -285,36 +293,39 @@ workout_log = (
     .first()
 )
 
-if workout_log is not None:
-    user_workout = workout_log.user_workout
-    print(
-        f"\nUser {user_id} created a workout on {workout_log.date} with the following details:"
-    )
-    print(f"Exercise type: {user_workout.exercise_type}")
-    print(f"Description: {user_workout.description}")
-    print(f"Duration: {user_workout.duration} hours")
-    print(f"Difficulty level: {user_workout.difficulty_level}")
-    print(f"Calories burned: {workout_log.calories_burned}")
-    print(f"Avg heart rate: {workout_log.heart_rate}")
-else:
-    print(f"User {user_id} has not created any workouts.")
+# if workout_log is not None:
+#     user_workout = workout_log.user_workout
+#     print(
+#         f"\nUser {user_id} created a workout on {workout_log.date} with the following details:"
+#     )
+#     print(f"Exercise type: {user_workout.exercise_type}")
+#     print(f"Description: {user_workout.description}")
+#     print(f"Duration: {user_workout.duration} hours")
+#     print(f"Difficulty level: {user_workout.difficulty_level}")
+#     print(f"Calories burned: {workout_log.calories_burned}")
+#     print(f"Avg heart rate: {workout_log.heart_rate}")
+# else:
+#     print(f"User {user_id} has not created any workouts.")
+
+# query_end_time = time.time()
+# print(f"WORKOUT Query runtime: {query_end_time - query_start_time} seconds")
 
 # GOAL QUERIES
 # Query the goals for user 1
 goals = session.query(Goal).filter(Goal.user_id == 1).all()
 
 # Check if the user has any goals
-if goals:
-    print("\nGoals for User 1.")
-    # Print out the details of each goal
-    for goal in goals:
-        print(f"\nGoal ID: {goal.id}")
-        print(f"Start date: {goal.start_date}")
-        print(f"End date: {goal.end_date}")
-        print(f"Goal type: {goal.goal_type}")
-        print(f"Goal description: {goal.description}")
-else:
-    print("User 1 has not set any goals.")
+# if goals:
+#     print("\nGoals for User 1.")
+#     # Print out the details of each goal
+#     for goal in goals:
+#         print(f"\nGoal ID: {goal.id}")
+#         print(f"Start date: {goal.start_date}")
+#         print(f"End date: {goal.end_date}")
+#         print(f"Goal type: {goal.goal_type}")
+#         print(f"Goal description: {goal.description}")
+# else:
+#     print("User 1 has not set any goals.")
 
 
 # TODO: query how many goals the user has completed
@@ -322,5 +333,7 @@ else:
 # TODO: get a fitness goal / check for a specific goal type to filter
 # TODO: how many difficult workouts did the user complete this week? -- need to query both tables
 
+# query_end_time = time.time()
+# print(f"GOAL Query runtime: {query_end_time - query_start_time} seconds")
 query_end_time = time.time()
-print(f"Query runtime: {query_end_time - query_start_time} seconds")
+print(f"TOTAL Query runtime: {query_end_time - query_start_time} seconds")
