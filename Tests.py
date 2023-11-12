@@ -14,11 +14,14 @@ from init_db import (
     WorkoutRecommendation,
     UserWorkout,
     WorkoutLog,
-)  # import your Base and models from your application
+)  # import the models to test
+
+# These test classes verify the functionality of the models
+# Tested: CRUD operations, CheckConstraints, Foregin key constraints, and basic queries
 
 
-# TODO: will have to go back and check the nullable and foreign id constraints are enforced
 class BaseTestCase(unittest.TestCase):
+    # base test case class that sets up the test database
     def setUp(self):
         # Set up the test database
         self.engine = create_engine(
@@ -42,6 +45,7 @@ class BaseTestCase(unittest.TestCase):
 
 
 class TestUser(BaseTestCase):
+    # test User model
     def setUp(self):
         # Call the setUp method of the parent class to set up the test database
         super().setUp()
@@ -74,6 +78,59 @@ class TestUser(BaseTestCase):
         self.session.delete(self.user)
         self.session.commit()
         self.assertIsNone(self.session.get(User, self.user.id))
+
+    def test_user_name_not_null_constraint(self):
+        # Test that the name not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.name = None
+            self.session.commit()
+
+    def test_user_age_constraint(self):
+        # Test that the age constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.age = -1
+            self.session.commit()
+
+    def test_user_weight_constraint(self):
+        # Test that the weight constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.weight = -1
+            self.session.commit()
+
+    def test_user_height_constraint(self):
+        # Test that the height constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.height = -1
+            self.session.commit()
+
+    def test_email_not_null_constraint(self):
+        # Test that the email not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.email = None
+            self.session.commit()
+
+    def test_password_not_null_constraint(self):
+        # Test that the password not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user.password = None
+            self.session.commit()
+
+    # test possible queries
+    def test_get_user_by_id(self):
+        user = self.session.get(User, self.user.id)
+        self.assertEqual(user.id, self.user.id)
+
+    def test_get_user_by_email(self):
+        user = self.session.query(User).filter(User.email == self.user.email).first()
+        self.assertEqual(user.email, self.user.email)
+
+    def test_get_all_users(self):
+        users = self.session.query(User).all()
+        self.assertEqual(len(users), 1)
+
+    def test_get_users_by_condition(self):
+        users = self.session.query(User).filter(User.age > 25).all()
+        self.assertEqual(len(users), 1)
 
 
 class TestHealthMetric(BaseTestCase):
@@ -168,9 +225,26 @@ class TestHealthMetric(BaseTestCase):
             self.session.add(invalid_metric)
             self.session.commit()
 
+    # test possible queries
+    def test_get_health_metric_by_id(self):
+        metric = self.session.get(HealthMetric, self.metric.id)
+        self.assertEqual(metric.id, self.metric.id)
 
-# Write a test class that verifies the functionality of he model, check the CRUD operations,
-# CheckConstraints, Foregin key constraints etc. Follow the prior structure given for the test cases
+    def test_get_all_health_metrics_for_user(self):
+        metrics = (
+            self.session.query(HealthMetric)
+            .filter(HealthMetric.user_id == self.user.id)
+            .all()
+        )
+        self.assertEqual(len(metrics), 1)
+
+    def test_get_health_metrics_by_condition(self):
+        metrics = (
+            self.session.query(HealthMetric)
+            .filter(HealthMetric.steps_taken > 5000)
+            .all()
+        )
+        self.assertEqual(len(metrics), 1)
 
 
 class TestSleep(BaseTestCase):
@@ -251,6 +325,38 @@ class TestSleep(BaseTestCase):
             self.session.add(invalid_sleep)
             self.session.commit()
 
+    def test_start_time_not_null_constraint(self):
+        # Test that the start_time not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.sleep.start_time = None
+            self.session.commit()
+
+    def test_end_time_not_null_constraint(self):
+        # Test that the end_time not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.sleep.end_time = None
+            self.session.commit()
+
+    def test_date_not_null_constraint(self):
+        # Test that the date not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.sleep.date = None
+            self.session.commit()
+
+    def test_get_sleep_log_by_id(self):
+        sleep_log = self.session.get(SleepLog, self.sleep.id)
+        self.assertEqual(sleep_log.id, self.sleep.id)
+
+    def test_get_all_sleep_logs_for_user(self):
+        sleep_logs = (
+            self.session.query(SleepLog).filter(SleepLog.user_id == self.user.id).all()
+        )
+        self.assertEqual(len(sleep_logs), 1)
+
+    def test_get_sleep_logs_by_condition(self):
+        sleep_logs = self.session.query(SleepLog).filter(SleepLog.duration > 7).all()
+        self.assertEqual(len(sleep_logs), 1)
+
 
 class TestFood(BaseTestCase):
     def setUp(self):
@@ -314,6 +420,24 @@ class TestFood(BaseTestCase):
         with self.assertRaises(IntegrityError):
             self.food.category = None
             self.session.commit()
+
+    def test_get_food_by_id(self):
+        food = self.session.get(Food, self.food.id)
+        self.assertEqual(food.id, self.food.id)
+
+    def test_get_food_by_name(self):
+        food = self.session.query(Food).filter(Food.name == self.food.name).first()
+        self.assertEqual(food.name, self.food.name)
+
+    def test_get_all_food_in_category(self):
+        foods = (
+            self.session.query(Food).filter(Food.category == self.food.category).all()
+        )
+        self.assertEqual(len(foods), 1)
+
+    def test_get_food_by_calories(self):
+        foods = self.session.query(Food).filter(Food.calories > 150).all()
+        self.assertEqual(len(foods), 1)
 
 
 class TestFoodLog(BaseTestCase):
@@ -386,13 +510,47 @@ class TestFoodLog(BaseTestCase):
             self.session.add(invalid_food_log)
             self.session.commit()
 
+    def test_date_not_null_constraint(self):
+        # Test that the date not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.food_log.date = None
+            self.session.commit()
+
+    def test_user_id_not_null_constraint(self):
+        # Test that the user_id not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.food_log.user_id = None
+            self.session.commit()
+
+    def test_food_id_not_null_constraint(self):
+        # Test that the food_id not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.food_log.food_id = None
+            self.session.commit()
+
+    def test_get_food_log_by_id(self):
+        food_log = self.session.get(FoodLog, self.food_log.id)
+        self.assertEqual(food_log.id, self.food_log.id)
+
+    def test_get_all_food_logs_for_user(self):
+        food_logs = (
+            self.session.query(FoodLog).filter(FoodLog.user_id == self.user.id).all()
+        )
+        self.assertEqual(len(food_logs), 1)
+
+    def test_get_food_logs_by_date(self):
+        # Define a date for the test
+        test_date = datetime.now().date()
+        # Query for food logs on the test date
+        food_logs = self.session.query(FoodLog).filter(FoodLog.date == test_date).all()
+        # Check the result
+        self.assertEqual(len(food_logs), 1)
+
 
 class TestWorkoutRecommendation(BaseTestCase):
-    # TODO: no nullable checks
     def setUp(self):
         # Call the setUp method of the parent class to set up the test database
         super().setUp()
-
         # Create a workout recommendation
         self.workout = WorkoutRecommendation(
             workout_name="Test Workout",
@@ -437,6 +595,44 @@ class TestWorkoutRecommendation(BaseTestCase):
         with self.assertRaises(IntegrityError):
             self.workout.difficulty_level = 4
             self.session.commit()
+
+    def test_workout_name_not_null_constraint(self):
+        # Test that the workout_name not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout.workout_name = None
+            self.session.commit()
+
+    def test_difficulty_level_not_null_constraint(self):
+        # Test that the difficulty_level not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout.difficulty_level = None
+            self.session.commit()
+
+    def test_duration_not_null_constraint(self):
+        # Test that the duration not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout.duration = None
+            self.session.commit()
+
+    def test_exercise_type_not_null_constraint(self):
+        # Test that the exercise_type not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout.exercise_type = None
+            self.session.commit()
+
+    def test_get_workout_recommendation_by_id(self):
+        workout_recommendation = self.session.get(
+            WorkoutRecommendation, self.workout.id
+        )
+        self.assertEqual(workout_recommendation.id, self.workout.id)
+
+    def test_get_workout_recommendations_by_condition(self):
+        workout_recommendations = (
+            self.session.query(WorkoutRecommendation)
+            .filter(WorkoutRecommendation.difficulty_level > 1)
+            .all()
+        )
+        self.assertEqual(len(workout_recommendations), 0)
 
 
 class TestUserWorkout(BaseTestCase):
@@ -487,6 +683,40 @@ class TestUserWorkout(BaseTestCase):
         with self.assertRaises(IntegrityError):
             self.user_workout.difficulty_level = 4
             self.session.commit()
+
+    def test_excercise_type_not_null_constraint(self):
+        # Test that the exercise_type not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user_workout.exercise_type = None
+            self.session.commit()
+
+    def test_description_not_null_constraint(self):
+        # Test that the description not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user_workout.description = None
+            self.session.commit()
+
+    def test_duration_not_null_constraint(self):
+        # Test that the duration not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user_workout.duration = None
+            self.session.commit()
+
+    def test_difficulty_level_not_null_constraint(self):
+        # Test that the difficulty_level not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.user_workout.difficulty_level = None
+            self.session.commit()
+
+    def test_get_user_workout_by_id(self):
+        user_workout = self.session.get(UserWorkout, self.user_workout.id)
+        self.assertEqual(user_workout.id, self.user_workout.id)
+
+    def test_get_user_workouts_by_condition(self):
+        user_workouts = (
+            self.session.query(UserWorkout).filter(UserWorkout.duration > 0.5).all()
+        )
+        self.assertEqual(len(user_workouts), 1)
 
 
 class TestWorkoutLog(BaseTestCase):
@@ -606,6 +836,50 @@ class TestWorkoutLog(BaseTestCase):
             self.session.add(invalid_workout_log)
             self.session.commit()
 
+    def test_calories_burned_constraint(self):
+        # Test that the calories_burned constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout_log.calories_burned = -1
+            self.session.commit()
+
+    def test_heart_rate_constraint(self):
+        # Test that the heart_rate constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout_log.heart_rate = -1
+            self.session.commit()
+
+    def test_date_not_null_constraint(self):
+        # Test that the date not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout_log.date = None
+            self.session.commit()
+
+    def test_user_id_not_null_constraint(self):
+        # Test that the user_id not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.workout_log.user_id = None
+            self.session.commit()
+
+    def test_get_workout_log_by_id(self):
+        workout_log = self.session.get(WorkoutLog, self.workout_log.id)
+        self.assertEqual(workout_log.id, self.workout_log.id)
+
+    def test_get_all_workout_logs_for_user(self):
+        workout_logs = (
+            self.session.query(WorkoutLog)
+            .filter(WorkoutLog.user_id == self.user.id)
+            .all()
+        )
+        self.assertEqual(len(workout_logs), 1)
+
+    def test_get_workout_logs_by_condition(self):
+        workout_logs = (
+            self.session.query(WorkoutLog)
+            .filter(WorkoutLog.calories_burned > 150)
+            .all()
+        )
+        self.assertEqual(len(workout_logs), 1)
+
 
 class TestGoal(BaseTestCase):
     # TODO: no not null tests
@@ -678,6 +952,31 @@ class TestGoal(BaseTestCase):
             self.goal.start_date = date.today() + timedelta(days=1)
             self.goal.end_date = date.today()
             self.session.commit()
+
+    def test_description_not_null_constraint(self):
+        # Test that the description not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.goal.description = None
+            self.session.commit()
+
+    def test_user_id_not_null_constraint(self):
+        # Test that the user_id not null constraint is enforced
+        with self.assertRaises(IntegrityError):
+            self.goal.user_id = None
+            self.session.commit()
+
+    def test_get_goal_by_id(self):
+        goal = self.session.get(Goal, self.goal.id)
+        self.assertEqual(goal.id, self.goal.id)
+
+    def test_get_all_goals_for_user(self):
+        goals = self.session.query(Goal).filter(Goal.user_id == self.user.id).all()
+        self.assertEqual(len(goals), 1)
+
+    def test_get_goals_by_condition(self):
+        test_date = datetime.now().date() - timedelta(days=1)
+        goals = self.session.query(Goal).filter(Goal.end_date > test_date).all()
+        self.assertEqual(len(goals), 1)
 
 
 if __name__ == "__main__":
