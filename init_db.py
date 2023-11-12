@@ -156,9 +156,9 @@ class WorkoutLog(Base):
         ),
     )
     workout_recommendation = relationship(
-        "WorkoutRecommendation", back_populates="workout_log"
+        "WorkoutRecommendation", backref="workout_log"
     )
-    user_workout = relationship("UserWorkout", back_populates="workout_log")
+    user_workout = relationship("UserWorkout", backref="workout_log")
 
     Index("idx_workoutlog_userid_date", "user_id", "date")
 

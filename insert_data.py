@@ -16,20 +16,20 @@ from init_db import (
     Goal,
 )
 
-# TODO: comments
-# Create a Faker instance
+# TODO: comments, explain ACID
+# Note that 3-4 seconds of the file run time is due to instantiating the faker module.
 fake = Faker()
+# Add the Faker FoodProvider to the Faker instance
 fake.add_provider(FoodProvider)
 
+### INSERT USERS ###
 genders = [1, 2, 3]  # M, F, NonBinary
-# Create 25 users
-for _ in range(25):
+for _ in range(25):  # add 25 users
     name = fake.name()
     age = random.randint(18, 70)
     user = User(
         name=name,
         age=age,
-        # TODO: change this to a number
         gender=random.choice(genders),
         weight=random.uniform(80.0, 100.0),  # kg
         height=random.uniform(150.0, 200.0),  # cm
@@ -37,9 +37,10 @@ for _ in range(25):
         password=fake.password(),  # faker library gives a hashed password
     )
     session.add(user)
+session.commit()
 
-# add foods because they are user independent
-# sets make sure all of the generated entries (food names) are unique
+### INSERT FOODS ### (user independent)
+# set() makes sure all of the generated entries (food names) are unique
 vegetables = set()
 while len(vegetables) < 12:
     vegetables.add(fake.vegetable())
@@ -48,7 +49,8 @@ while len(fruits) < 12:
     fruits.add(fake.fruit())
 dishes = set()
 while len(dishes) < 36:
-    # dishes faker are not as aligned withe the categories, but the best option for food fakers
+    # faked dishes are not aligned with the food categories
+    # but this is the closest real data approximation
     dishes.add(fake.dish())
 
 for _ in range(60):  # add 60 foods to the database
@@ -72,35 +74,40 @@ for _ in range(60):  # add 60 foods to the database
         category=category,
     )
     session.add(food)
+session.commit()
 
-# Create dummy data for the WorkoutRecommendation table because it is user independent
+### INSERT WORKOUT RECOMMENDATIONS ### (user independent)
 exercise_types = [1, 2, 3]  # 1 = cardio, 2 = strength, 3 = flexibility
 difficulty_levels = [1, 2, 3]  # 1 = easy, 2 = medium, 3 = hard
 
-for _ in range(50):  # Create 50 workout recommendations
+for i in range(50):  # Create 50 workout recommendations
     workout_recommendation = WorkoutRecommendation(
         exercise_type=random.choice(exercise_types),
-        workout_name=(f"Workout {_}"),
+        workout_name=(f"Workout {i}"),
         description=fake.sentence(),
         duration=random.uniform(0.05, 2.0),  # hours
         difficulty_level=random.choice(difficulty_levels),
     )
     session.add(workout_recommendation)
-
-# Commit the users, food, workout recommendations to the database
 session.commit()
 
-# define start and end dates for the dummy data
-start_date_30 = datetime.now() - timedelta(days=30)  # 30 days ago
-end_date = datetime.now().date()  # today
-# Create dummy data for other tables with user FKs
-for user in session.query(User).all():
-    ### Insert data for HealthMetric table ###
-    start_date = datetime.now() - timedelta(days=30)  # 30 days ago
-    end_date = datetime.now()  # today
 
+# frequently used insertion start date, backdated 30 days
+start_date_30 = datetime.now() - timedelta(days=30)
+
+# Create dummy data for other tables with user FKs
+"""
+I have separated the insertions out into different loops over the user list
+This helps make my code more readable and helps me commit the data to the database
+in the correct order and as soon as the table is filled. This helps in the case 
+of a rollback or computer crash. This choice comes at the cost of run time performance. 
+In practice the data would not be inserted like this (decreased insertion time).
+"""
+### Insert data for HealthMetric table ###
+for user in session.query(User).all():
+    end_date = datetime.now()  # today
     delta = timedelta(days=1)  # increment by one day
-    current_date = start_date
+    current_date = start_date_30
     while current_date <= end_date:
         random_time = (
             datetime.now()
@@ -124,12 +131,12 @@ for user in session.query(User).all():
         )
         session.add(health_metric)
         current_date += delta  # add one entry per user per day
+session.commit()
 
-    ### Insert data for SleepLog table ###
-    today = datetime.now().date()
-    start_date = today - timedelta(days=30)
+### Insert data for SleepLog table ###
+for user in session.query(User).all():
     for _ in range(30):  # Each user has 60 sleep records (one a day)
-        start_time = datetime.combine(start_date, datetime.min.time()) + timedelta(
+        start_time = datetime.combine(start_date_30, datetime.min.time()) + timedelta(
             days=_,
             hours=random.randint(0, 23),
             minutes=random.randint(0, 59),
@@ -150,8 +157,10 @@ for user in session.query(User).all():
             date=start_time.date(),
         )
         session.add(sleep)
+session.commit()
 
-    ### Insert data for FoodLog table ###
+### Insert data for FoodLog table ###
+for user in session.query(User).all():
     food_log_date = start_date_30 + timedelta(days=1)
     for day in range(30):  # For each day in a 30-day window
         for _ in range(3):  # Add 3 entries each day
@@ -165,8 +174,10 @@ for user in session.query(User).all():
             )
             session.add(food_log)
         food_log_date += timedelta(days=1)  # Increment the date
+session.commit()
 
-    ### Insert data for WorkoutLog and UserWorkout tables ###
+### Insert data for WorkoutLog and UserWorkout tables ###
+for user in session.query(User).all():
     workout_recommendations = session.query(WorkoutRecommendation).all()
     for i in range(30):  # Each user has 30 workouts
         # Calculate the date of the workout by backdating i days from today
@@ -206,11 +217,11 @@ for user in session.query(User).all():
                 date=workout_date,
             )
         session.add(workout_log)
+session.commit()
 
-    # Create dummy data for the Goal table
-    # TODO: probably should move this to the top of the file
-    goal_types = [1, 2, 3]  # 1 = sleep, 2 = nutrition, 3 = workout
-
+### INSERT GOALS ###
+goal_types = [1, 2, 3]  # 1 = sleep, 2 = nutrition, 3 = workout
+for user in session.query(User).all():
     for i in range(2):  # Each user has 2 goals in beginning in the past month
         # get random start and end dates for goal
         start_date = datetime.now().date() - timedelta(days=random.randint(0, 30))
@@ -226,7 +237,4 @@ for user in session.query(User).all():
             goal_type=goal_type,
         )
         session.add(goal)
-
-# Commit the dummy data to the database
-# TODO: explain why I am only committing once at the end
 session.commit()
