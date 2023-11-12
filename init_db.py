@@ -28,6 +28,7 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 Base = declarative_base()
 
 
+# PLEASE SEE README FOR IN DEPTH EXPLANATION OF TABLE DESIGN
 # User table stores user log in and personal information
 class User(Base):
     __tablename__ = "users"
@@ -73,6 +74,8 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
     # Create a composite index on user_id and timestamp
+    # many of the tables have composite indexes including date because
+    # habit tracking is often done by day or time period
     Index("idx_healthmetrics_userid_timestamp", "user_id", "timestamp")
 
 
@@ -81,7 +84,13 @@ class SleepLog(Base):
     __tablename__ = "sleep_log"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
-    # TODO: make a case for this being 2NF
+    """
+    duration is a transitive dependency of start time and end time. 
+    I argue that on insertion, the data processor can calculate the duration from those times. 
+    I include a duration field because I think many people are going to be most interested 
+    in tracking how hours of sleep not start and end times. Storing it in the database makes
+    the frequent queries for sleep duration more efficient (no math).
+    """
     duration = Column(Float, CheckConstraint("duration>=0"))
     quality = Column(
         Integer, CheckConstraint("quality BETWEEN 1 AND 5")
@@ -232,7 +241,8 @@ class Goal(Base):
         # check goal starts before the end date
         CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
     )
-    # TODO: explain
+    # Create a composite index on user_id and end_date because people
+    # will want to query the goal status
     __table_args__ = (Index("idx_user_id_end_date", "user_id", "end_date"),)
 
 
