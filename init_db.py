@@ -28,31 +28,33 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 Base = declarative_base()
 
 
-# PLEASE SEE README FOR IN DEPTH EXPLANATION OF TABLE DESIGN
+# PLEASE SEE README FOR IN DEPTH EXPLANATIONS OF TABLE DESIGN
 # User table stores user log in and personal information
 class User(Base):
     __tablename__ = "users"
     """
     PK choice:
     the email is immutable and unique, so it is a good candidate for a PK
-    however, a string is not as efficient than an integer PK and almost all the 
-    queries will require the user id. Email is also not an intuitive way to search for a user
+    however, a string is not as efficient as an integer PK and almost all of the 
+    queries require the user id. Email is also not an intuitive way to search for a user
     The surrogate id is a more efficient choice that is guaranteed to be unique
     """
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     age = Column(Integer, CheckConstraint("age>=0"))
+    # I standardize my multi option fields to integers for easier querying
+    # the front end can convert the integer to a string for display
     gender = Column(
         Integer, CheckConstraint("gender BETWEEN 1 AND 3")
-    )  # gender: "Male", "Female", "Nonbinary"
+    )  # gender: 1 "Male", 2 "Female", 3 "Nonbinary"
     weight = Column(Float, CheckConstraint("weight>=0"))  # kg
     height = Column(Float, CheckConstraint("height>=0"))  # cm
+    # require unique email for login and password
     email = Column(String(255), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
 
     # create 2 way relationship between tables that use user_id as a FK
-    # this increases query efficiency because I do not have to manually
-    # connect the tables on the id column
+    # this makes queries more readable when I do not have to join them on the user_id column
     sleep_log = relationship("SleepLog", backref="user")
     food_log = relationship("FoodLog", backref="user")
     workout_log = relationship("WorkoutLog", backref="user")
@@ -74,7 +76,7 @@ class HealthMetric(Base):
     timestamp = Column(DateTime, nullable=False)
 
     # Create a composite index on user_id and timestamp
-    # many of the tables have composite indexes including date because
+    # many of the tables have composite indexes with user_id and date because
     # habit tracking is often done by day or time period
     Index("idx_healthmetrics_userid_timestamp", "user_id", "timestamp")
 
@@ -86,10 +88,11 @@ class SleepLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
     """
     duration is a transitive dependency of start time and end time. 
-    I argue that on insertion, the data processor can calculate the duration from those times. 
-    I include a duration field because I think many people are going to be most interested 
-    in tracking how hours of sleep not start and end times. Storing it in the database makes
-    the frequent queries for sleep duration more efficient (no math).
+    I argue that on insertion, the data processor can calculate the duration from those times
+    and insert it into the table correctly. I include a duration field because 
+    I think many people are going to be most interested in tracking hours of sleep 
+    not start and end times. Storing it in the database makes the frequent 
+    queries for sleep duration more efficient (no math).
     """
     duration = Column(Float, CheckConstraint("duration>=0"))
     quality = Column(
@@ -106,7 +109,7 @@ class SleepLog(Base):
 # food table defines the food options available to users (new options can be added)
 class Food(Base):
     __tablename__ = "food"
-    # name is not primary key because it may be updated or the other entries may vary
+    # name is not primary key because it may be updated or the other column vals may vary
     id = Column(Integer, primary_key=True)
     # assume drop down for entry normalization of name
     name = Column(String(100), nullable=False, unique=True)
@@ -139,8 +142,8 @@ class FoodLog(Base):
 class WorkoutLog(Base):
     """
     This is a relational table that connects the user to either a user workout or
-    a recommended workout. It is a many to many relationship because a user repeat
-    a workout many times and a workout can be done by many users. Both options are
+    a recommended workout. It is a many to many relationship because a user can do
+    a workout many times and a workout can be done by many users. Both workout options are
     included here because there are metrics applicable to both workouts than cannot be
     predicted in the workout definition (calories burned, heart rate).
     """
@@ -157,18 +160,19 @@ class WorkoutLog(Base):
     date = Column(Date, nullable=False)
 
     __table_args__ = (
-        # ensure that only one workout is listed: a user workout or a recommended one
+        # force that only one workout is listed: a user workout or a recommended one
         CheckConstraint(
             "(user_workout_id IS NULL AND recommendation_id IS NOT NULL) OR "
             "(user_workout_id IS NOT NULL AND recommendation_id IS NULL)",
             name="chk_workout_recommendation_exclusive",
         ),
     )
+    # backrefs to make it easier to express relationship to the 2 workout tables
     workout_recommendation = relationship(
         "WorkoutRecommendation", backref="workout_log"
     )
     user_workout = relationship("UserWorkout", backref="workout_log")
-
+    # composite key to help get user's workouts on/between a specific date
     Index("idx_workoutlog_userid_date", "user_id", "date")
 
 
@@ -192,13 +196,14 @@ class UserWorkout(Base):
     )  # 1 = easy, 2 = medium, 3 = hard
 
 
-# workout recommendation table holds generalized lists of data for users to choose from
+# workout recommendation table holds generalized list for users to choose from
 # characteristics are stored for improved recommendation filters
 class WorkoutRecommendation(Base):
     __tablename__ = "workout_recommendation"
 
     id = Column(Integer, primary_key=True)
-    # could have the same name for multiple difficulty levels or durations so this cannot be the PK
+    # could have the same name for multiple difficulty levels or durations,
+    # requires a surrogate PK
     workout_name = Column(String(100), nullable=False)
     description = Column(String(255))
     exercise_type = Column(
@@ -219,7 +224,6 @@ class WorkoutRecommendation(Base):
         nullable=False,
         index=True,
     )  # 1 = easy, 2 = medium, 3 = hard
-    # workout_log = relationship("WorkoutLog", back_populates="workout_recommendation")
 
 
 # goal table tracks details of user goals and their status
@@ -242,7 +246,7 @@ class Goal(Base):
         CheckConstraint(start_date < end_date, name="check_start_date_before_end_date"),
     )
     # Create a composite index on user_id and end_date because people
-    # will want to query the goal status
+    # will want to query the goal status (indicated by whether the end date as passed)
     __table_args__ = (Index("idx_user_id_end_date", "user_id", "end_date"),)
 
 

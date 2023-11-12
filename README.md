@@ -25,7 +25,6 @@ python3 test.py
 `schema.png`: a visual representation of my database schema created from `schema.dot`
 
 `tests.py`: runs a unit test suite for each model, verifying CRUD operations and constraints (including FK constraints). 
-<!-- TODO: anything else? -->
 
 <!-- TODO: include transactions file? -->
 ## Health and Fitness Tracking App Description
@@ -162,10 +161,7 @@ can be expressed as
 ``` python
 goals = user1.goals
 ```
-
 <!-- TODO: talked about acid for committing data? -->
-
-<!-- TODO: comment on why I standardized multi choice to be numbers -->
 
 
 
