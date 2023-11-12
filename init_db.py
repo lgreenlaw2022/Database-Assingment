@@ -106,6 +106,8 @@ class Food(Base):
         Integer, CheckConstraint("category BETWEEN 1 AND 5"), nullable=False
     )  # 1 = protein, 2 = carb, 3 = fat, 4 = veggie, 5 = fruit
 
+    food_log = relationship("FoodLog", backref="food")
+
 
 # food log table tracks food intake over time for users by referencing the food table
 class FoodLog(Base):
@@ -119,8 +121,6 @@ class FoodLog(Base):
     # or a long term report with dates
     date = Column(Date, nullable=False)
     time = Column(Time)
-
-    food = relationship("Food", backref="food_log")
 
     # Create a composite index on user_id and date
     Index("idx_foodlog_userid_date", "user_id", "date")
@@ -181,6 +181,7 @@ class UserWorkout(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
+    # workout_log = relationship("WorkoutLog", back_populates="user_workout")
 
 
 # workout recommendation table holds generalized lists of data for users to choose from
@@ -203,6 +204,7 @@ class WorkoutRecommendation(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
+    # workout_log = relationship("WorkoutLog", back_populates="workout_recommendation")
 
 
 # goal table tracks details of user goals and their status
