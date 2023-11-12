@@ -338,5 +338,7 @@ if user1:
 else:
     print("User not found.")
 
+# TODO: generate a health report?
+
 query_end_time = time.time()
 print(f"\nTOTAL query runtime: {query_end_time - query_start_time} seconds")

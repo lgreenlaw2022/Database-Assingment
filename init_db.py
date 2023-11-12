@@ -181,7 +181,6 @@ class UserWorkout(Base):
     difficulty_level = Column(
         Integer, CheckConstraint("difficulty_level IN (1, 2, 3)"), nullable=False
     )  # 1 = easy, 2 = medium, 3 = hard
-    # workout_log = relationship("WorkoutLog", back_populates="user_workout")
 
 
 # workout recommendation table holds generalized lists of data for users to choose from
