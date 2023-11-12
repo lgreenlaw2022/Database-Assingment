@@ -3,7 +3,7 @@
 ## Run instructions
 ```
 python3 -m venv venv
-venv\bin\activate.bat
+source venv/bin/activate
 pip3 install -r requirements.txt
 python3 init_db.py
 python3 insert_data.py
