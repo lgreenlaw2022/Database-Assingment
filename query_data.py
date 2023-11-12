@@ -6,7 +6,6 @@ from init_db import (
     FoodLog,
     WorkoutRecommendation,
     WorkoutLog,
-    UserWorkout,
     Goal,
 )
 from sqlalchemy import func, text, desc
@@ -30,16 +29,14 @@ print("\nTotal User Count:")
 user_count = session.query(func.count(User.id)).scalar()
 print(user_count)
 
-### HEALTH_METRIC TABLE QUERIES ###
-# Get the user with id 1
-
+# get a user to run the queries on (check for user 1 first)
 user_id = 1
 user1 = session.query(User).filter(User.id == user_id).first()
-
 while not user1:
     user_id += 1
     user1 = session.query(User).filter(User.id == user_id).first()
 
+### HEALTH_METRIC TABLE QUERIES ###
 # Get average health metrics over the last 30 days
 avg_metrics = (
     session.query(
@@ -75,10 +72,10 @@ avg_steps = (
 )
 print(f"\nAverage steps per day for {user1.name} over the last 7 days: {avg_steps}")
 
+
 ### SLEEP TABLE QUERIES ###
 # get average sleep quality and duration for user 1 over the last 30 days
-# Get today's date
-end_date = datetime.now()
+end_date = datetime.now()  # today's date
 avg_sleep = (
     session.query(
         func.avg(SleepLog.duration),
@@ -106,11 +103,12 @@ best_sleeper = (
 print(f"\nUser with the highest average sleep quality over the last month:")
 print(f"{best_sleeper.name}, Quality: {best_sleeper[1]}")
 
+
 ### FOOD AND FOOD LOG QUERIES ###
 # 3 most popular foods for all users
 query = (
     session.query(Food.name, func.count(FoodLog.food_id).label("total"))
-    .join(FoodLog)  # did not have to do a JOIN because of backref
+    .join(FoodLog)
     .group_by(Food.name)
     .order_by(text("total DESC"))
     .limit(3)
@@ -120,24 +118,23 @@ print("\n3 most popular foods across all users")
 for food in most_popular_foods:
     print(f"Food ID: {food.name}, Count: {food.total}")
 
+
 # Food log entries for user 1 yesterday
-# Get the date 1 day ago
-query_date = datetime.now().date() - timedelta(days=1)
+query_date = datetime.now().date() - timedelta(days=1)  # yesterday date
 foods_user_ate_yesterday = (
     session.query(FoodLog)
     .join(Food)  # backref removes the need for explicit join condition
     .filter(FoodLog.user_id == user1.id, FoodLog.date == query_date)
 ).all()
-
 print("\nFoods user 1 ate yesterday:")
 for food_log in foods_user_ate_yesterday:
     print(f"Food Name: {food_log.food.name}, Time: {food_log.time}")
 
 
-# Query the FoodLog table and use the backref to Food
+# Get the number of times user ate vegetables in the last week
 query = (
     session.query(FoodLog)
-    .join(Food)  # using backrf
+    .join(Food)  # using backref
     .filter(
         FoodLog.user_id == user1.id,
         FoodLog.date.between(start_date_7, end_date),
@@ -146,7 +143,7 @@ query = (
 )
 num_vegetables_last_week = (
     query.count()
-)  # Use count() to get the number of times user 1 ate vegetables
+)  # Use count() to get the number of times from entries returned by the query
 print(
     f"\nNumber of times user 1 ate vegetables in the last week: {num_vegetables_last_week}"
 )
@@ -194,6 +191,7 @@ query = (
 )
 print(f"\nNumber of strength workouts in the recommendation table: {query}")
 
+
 ### Workout Log Queries ###
 # get the most frequent recommendation users used
 query = (
@@ -207,8 +205,9 @@ query = (
 )
 most_frequent_rec_id, frequency = query
 print(
-    f"\nThe most frequent recommendation all the users did is workout{most_frequent_rec_id}: {frequency} times."
+    f"\nThe most frequent recommendation the users did is workout {most_frequent_rec_id}: {frequency} times."
 )
+
 
 # Query the WorkoutLog table to get the number of workouts for a specific user this week
 end_date = start_date_7 + timedelta(days=7)
@@ -222,7 +221,8 @@ num_workouts = (
 )
 print(f"\nUser {user1.name} worked out {num_workouts} times this week.")
 
-# Query the WorkoutLog table to get the total calories burned by a specific user on a specific day
+
+# Query the WorkoutLog table to get the total calories burned by user on a specific day
 workout_date = datetime.now().date() - timedelta(days=7)
 query = (
     session.query(func.sum(WorkoutLog.calories_burned))
@@ -230,6 +230,7 @@ query = (
     .scalar()
 )
 print(f"\nUser {user1.name} burned {query} calories on {workout_date}.")
+
 
 # Query the WorkoutLog table to get the details of a user-created workout
 workout_log = (
@@ -254,7 +255,7 @@ else:
 
 ### GOAL QUERIES ###
 # Query the goals for user 1
-goals = user1.goals  # using backref here speeds up the query and makes it more readable
+goals = user1.goals  # using backref makes the query more readable
 # Check if the user has any goals
 if goals:
     print("\nGoals for User 1.")
@@ -268,19 +269,20 @@ if goals:
 else:
     print("User 1 has not set any goals.")
 
+
 # get the number of completed goals for user 1
 completed_goals_count = (
     session.query(func.count(Goal.id))  # Count the goals
     .filter(
         Goal.user_id == user1.id,
-        Goal.end_date < date.today(),  # Filter by end date
+        Goal.end_date < date.today(),  # Filter by end date before today
     )
-    .scalar()  # Get the count
+    .scalar()
 )
 print(f"\nNumber of completed goals by user {user1.id}: {completed_goals_count}")
 
-# get the details of in progress goals for user 1
 
+# get the details of in progress goals for user 1
 in_progress_goals = (
     session.query(Goal)  # Select the goals
     .filter(
@@ -319,6 +321,7 @@ else:
     print("\nno in progress fitness goals for user")
 
 
+### COMPREHENSIVE QUERY ###
 # generate monthly health report for user 1
 # Get the current date and the date 30 days ago
 current_date = datetime.now().date()
