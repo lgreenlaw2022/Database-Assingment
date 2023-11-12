@@ -19,7 +19,6 @@ from init_db import (
 # These test classes verify the functionality of the models
 # Tested: CRUD operations, CheckConstraints, Foregin key constraints, and basic queries
 
-
 class BaseTestCase(unittest.TestCase):
     # base test case class that sets up the test database
     def setUp(self):

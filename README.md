@@ -24,9 +24,9 @@ python3 test.py
 
 `schema.png`: a visual representation of my database schema created from `schema.dot`
 
-`tests.py`: runs a unit test suite for each model, verifying CRUD operations and constraints (including FK constraints). 
+`tests.py`: runs a unit test suite for each model, verifying CRUD operations and constraints (including FK constraints). These tests show the possible transactions and queries are successful. Note I was not able to make a separate folder for the test classes (running as a module did not work, normal imports did not work) and adding a PYTHONPATH variable or sys path  would be specific to my device.  
 
-<!-- TODO: include transactions file? if not, address how testing helps with this -->
+
 ## Health and Fitness Tracking App Description
 
 ### Primary Objectives
