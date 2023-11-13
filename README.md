@@ -10,7 +10,7 @@ python3 insert_data.py
 python3 query_data.py
 
 <!-- Test -->
-python3 test.py
+python3 Tests.py
 ```
 
 ### Important Files
